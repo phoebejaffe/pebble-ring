@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth";
 import { fetchPebbleContent, type PebbleContent } from "./api";
+import { RecordingsView } from "./components/RecordingsView";
+import { SettingsPanel } from "./components/SettingsPanel";
+import { HeaderMenu } from "./components/HeaderMenu";
+import { RawJsonModal } from "./components/RawJsonModal";
+import { TranscriptionSettingsProvider } from "./contexts/TranscriptionSettingsContext";
 
 export function App() {
   const { user, loading, error, signInWithGoogle, signOut } = useAuth();
   const [content, setContent] = useState<PebbleContent | null>(null);
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [rawJsonOpen, setRawJsonOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -57,33 +64,40 @@ export function App() {
   }
 
   return (
-    <main className="page">
-      <header className="header">
-        <div>
-          <h1>Pebble Ring</h1>
-          <p className="muted">
-            Signed in as {user.email ?? user.uid}
-          </p>
-        </div>
-        <button type="button" onClick={() => void signOut()}>
-          Sign out
-        </button>
-      </header>
-
-      {error && <p className="error">{error}</p>}
-      {fetching && <p className="muted">Loading your Pebble content…</p>}
-      {fetchError && <p className="error">{fetchError}</p>}
-
-      {content && (
-        <section className="dump">
-          <div className="stats">
-            <span>{content.recordings.length} recordings</span>
-            <span>{content.items.length} items</span>
-            <span>{content.lists.length} lists</span>
+    <TranscriptionSettingsProvider>
+      <main className="page wide">
+        <header className="header">
+          <div>
+            <h1>Pebble Ring</h1>
+            <p className="muted">Signed in as {user.email ?? user.uid}</p>
           </div>
-          <pre>{JSON.stringify(content, null, 2)}</pre>
-        </section>
-      )}
-    </main>
+          <div className="header-actions">
+            <button type="button" className="secondary-btn" onClick={() => setSettingsOpen(true)}>
+              Settings
+            </button>
+            <HeaderMenu
+              onShowRawJson={() => setRawJsonOpen(true)}
+              onSignOut={() => void signOut()}
+            />
+          </div>
+        </header>
+
+        {error && <p className="error">{error}</p>}
+        {fetching && <p className="muted">Loading your Pebble content…</p>}
+        {fetchError && <p className="error">{fetchError}</p>}
+
+        {content && (
+          <RecordingsView uid={user.uid} content={content} onContentChange={setContent} />
+        )}
+
+        <RawJsonModal
+          open={rawJsonOpen}
+          content={content}
+          onClose={() => setRawJsonOpen(false)}
+        />
+
+        <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      </main>
+    </TranscriptionSettingsProvider>
   );
 }

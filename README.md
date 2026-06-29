@@ -21,7 +21,24 @@ This uses the same Firebase project as the official Pebble / Index web app:
 - **Auth**: Firebase Google sign-in (`coreapp-ce061`)
 - **Data**: Firestore collections at `recordings/{uid}/recordings`, `items/{uid}/items`, `lists/{uid}/lists`, and `users/{uid}`
 
-The UI is intentionally bare — just a JSON dump for now.
+## Features
+
+- Recordings sorted newest-first
+- Drag recordings between lists (tags on items — `parentListIds` in Firestore)
+- Delete (🗑️) soft-deletes the linked item (`deleted: true` on Firestore)
+- Retranscribe — click the model chip → "Retranscribe with universal-2"
+
+### Retranscription setup
+
+```bash
+cp .env.example .env.local
+# Add ASSEMBLYAI_API_KEY=...
+npm run dev
+```
+
+The retranscribe code lives in `src/retranscribe/` and can be removed independently — see `src/retranscribe/index.ts`.
+
+Toggle **Raw JSON** in the header to see the full Firestore dump.
 
 ## Notes
 
