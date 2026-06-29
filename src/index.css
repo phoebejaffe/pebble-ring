@@ -653,14 +653,15 @@ button:disabled {
 .undo-toast {
   position: fixed;
   bottom: 1.25rem;
-  left: 50%;
+  left: 1.25rem;
   z-index: 70;
-  width: min(420px, calc(100vw - 2rem));
-  transform: translateX(-50%);
-  border: 1px solid #2a2a30;
+  width: min(420px, calc(100vw - 2.5rem));
+  border: 1px solid #4a4a58;
   border-radius: 12px;
-  background: #141418;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: #2a2a34;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
@@ -673,7 +674,7 @@ button:disabled {
 }
 
 .undo-toast-message {
-  color: #f2f2f2;
+  color: #fafafa;
   font-size: 0.95rem;
 }
 
@@ -682,7 +683,7 @@ button:disabled {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #7aa8ff;
+  color: #9ec0ff;
   font: inherit;
   font-weight: 600;
   text-decoration: underline;
@@ -690,18 +691,18 @@ button:disabled {
 }
 
 .undo-toast-link:hover {
-  color: #a8c4ff;
+  color: #c5daff;
 }
 
 .undo-toast-progress {
   height: 3px;
-  background: #2a2a30;
+  background: #3a3a48;
 }
 
 .undo-toast-progress-bar {
   height: 100%;
   width: 100%;
-  background: #4f8cff;
+  background: #6ea8ff;
   transform-origin: left center;
   animation: undo-toast-progress linear forwards;
 }
