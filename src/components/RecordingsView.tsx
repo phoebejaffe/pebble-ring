@@ -4,7 +4,6 @@ import {
   DragOverlay,
   PointerSensor,
   pointerWithin,
-  rectIntersection,
   useSensor,
   useSensors,
   type CollisionDetection,
@@ -54,10 +53,7 @@ const listDropCollisionDetection: CollisionDetection = (args) => {
     String(container.id).startsWith("list:"),
   );
 
-  const pointerHits = pointerWithin({ ...args, droppableContainers: listDroppables });
-  if (pointerHits.length > 0) return pointerHits;
-
-  return rectIntersection({ ...args, droppableContainers: listDroppables });
+  return pointerWithin({ ...args, droppableContainers: listDroppables });
 };
 
 function itemToContentData(item: ParsedItem): Record<string, unknown> {
