@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { PebbleContent } from "../api";
 import { findArchivedList } from "../lib/archive";
+import { recordingMatchesSearch } from "../lib/recording-search";
 import {
   EVERYTHING_LIST_ID,
   INBOX_LIST_ID,
@@ -24,9 +25,15 @@ type Params = {
   content: PebbleContent;
   selectedListId: string;
   showArchived: boolean;
+  searchQuery?: string;
 };
 
-export function useRecordingsData({ content, selectedListId, showArchived }: Params) {
+export function useRecordingsData({
+  content,
+  selectedListId,
+  showArchived,
+  searchQuery = "",
+}: Params) {
   const lists = useMemo(
     () =>
       content.lists.map((list) => parseList(list.id, list.data)).filter((list) => !list.deleted),
@@ -63,9 +70,12 @@ export function useRecordingsData({ content, selectedListId, showArchived }: Par
       if (itemForRecording(allItems, recording.id, { includeDeleted: true })?.deleted) {
         return false;
       }
-      return recordingInList(items, recording.id, selectedListId, listFilterOptions);
+      if (!recordingInList(items, recording.id, selectedListId, listFilterOptions)) {
+        return false;
+      }
+      return recordingMatchesSearch(recording, searchQuery);
     });
-  }, [recordings, allItems, items, selectedListId, listFilterOptions]);
+  }, [recordings, allItems, items, selectedListId, listFilterOptions, searchQuery]);
 
   const listCounts = useMemo(() => {
     const counts: Record<string, number> = {

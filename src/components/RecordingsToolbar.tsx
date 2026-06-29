@@ -1,6 +1,8 @@
 type Props = {
   showArchived: boolean;
   onShowArchivedChange: (value: boolean) => void;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
   onAddList: () => void;
   onRefresh: () => void;
   refreshing: boolean;
@@ -9,6 +11,8 @@ type Props = {
 export function RecordingsToolbar({
   showArchived,
   onShowArchivedChange,
+  searchQuery,
+  onSearchQueryChange,
   onAddList,
   onRefresh,
   refreshing,
@@ -23,6 +27,14 @@ export function RecordingsToolbar({
         />
         Show archived
       </label>
+      <input
+        type="search"
+        className="recordings-search"
+        placeholder="Search recordings…"
+        value={searchQuery}
+        onChange={(event) => onSearchQueryChange(event.target.value)}
+        aria-label="Search recordings"
+      />
       <button
         type="button"
         className="secondary-btn"

@@ -27,6 +27,7 @@ type Props = {
 export function RecordingsView({ uid, content, onContentChange, onRefresh, refreshing }: Props) {
   const [selectedListId, setSelectedListId] = useState(EVERYTHING_LIST_ID);
   const [showArchived, setShowArchived] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ParsedRecording | null>(null);
   const [addListOpen, setAddListOpen] = useState(false);
 
@@ -44,7 +45,7 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
     listsForRecording,
     availableListsForRecording,
     items,
-  } = useRecordingsData({ content, selectedListId, showArchived });
+  } = useRecordingsData({ content, selectedListId, showArchived, searchQuery });
 
   const { toasts, showUndo, dismiss, durationMs } = useUndoToast();
 
@@ -100,6 +101,8 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
           <RecordingsToolbar
             showArchived={showArchived}
             onShowArchivedChange={setShowArchived}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
             onAddList={() => setAddListOpen(true)}
             onRefresh={onRefresh}
             refreshing={refreshing}
@@ -119,9 +122,11 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
           <div className="recordings-list">
             {visibleRecordings.length === 0 ? (
               <p className="muted empty-state">
-                {selectedListId === EVERYTHING_LIST_ID
-                  ? "No recordings yet."
-                  : "No recordings in this list."}
+                {searchQuery.trim()
+                  ? "No recordings match your search."
+                  : selectedListId === EVERYTHING_LIST_ID
+                    ? "No recordings yet."
+                    : "No recordings in this list."}
               </p>
             ) : (
               visibleRecordings.map((recording) => (

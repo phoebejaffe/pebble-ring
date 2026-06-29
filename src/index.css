@@ -186,6 +186,27 @@ button:disabled {
   margin-right: auto;
 }
 
+.recordings-search {
+  flex: 1;
+  min-width: 0;
+  max-width: 280px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #2a2a30;
+  border-radius: 8px;
+  background: #0b0b0d;
+  color: #f2f2f2;
+  font: inherit;
+}
+
+.recordings-search::placeholder {
+  color: #6a6a72;
+}
+
+.recordings-search:focus {
+  outline: none;
+  border-color: #4a6a9a;
+}
+
 .lol-row {
   display: flex;
   flex-wrap: nowrap;
