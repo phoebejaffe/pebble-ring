@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./auth";
 import { fetchPebbleContent, type PebbleContent } from "./api";
 import { RecordingsView } from "./components/RecordingsView";
@@ -11,9 +11,26 @@ export function App() {
   const { user, loading, error, signInWithGoogle, signOut } = useAuth();
   const [content, setContent] = useState<PebbleContent | null>(null);
   const [fetching, setFetching] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [rawJsonOpen, setRawJsonOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const refreshContent = useCallback(async () => {
+    if (!user) return;
+
+    setRefreshing(true);
+    setFetchError(null);
+
+    try {
+      const data = await fetchPebbleContent(user.uid);
+      setContent(data);
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Failed to load content");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -87,14 +104,16 @@ export function App() {
         {fetchError && <p className="error">{fetchError}</p>}
 
         {content && (
-          <RecordingsView uid={user.uid} content={content} onContentChange={setContent} />
+          <RecordingsView
+            uid={user.uid}
+            content={content}
+            onContentChange={setContent}
+            onRefresh={() => void refreshContent()}
+            refreshing={refreshing}
+          />
         )}
 
-        <RawJsonModal
-          open={rawJsonOpen}
-          content={content}
-          onClose={() => setRawJsonOpen(false)}
-        />
+        <RawJsonModal open={rawJsonOpen} content={content} onClose={() => setRawJsonOpen(false)} />
 
         <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </main>

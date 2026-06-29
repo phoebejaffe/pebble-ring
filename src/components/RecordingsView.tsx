@@ -20,9 +20,11 @@ type Props = {
   uid: string;
   content: PebbleContent;
   onContentChange: (content: PebbleContent) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
 };
 
-export function RecordingsView({ uid, content, onContentChange }: Props) {
+export function RecordingsView({ uid, content, onContentChange, onRefresh, refreshing }: Props) {
   const [selectedListId, setSelectedListId] = useState(EVERYTHING_LIST_ID);
   const [showArchived, setShowArchived] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ParsedRecording | null>(null);
@@ -99,6 +101,8 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
             showArchived={showArchived}
             onShowArchivedChange={setShowArchived}
             onAddList={() => setAddListOpen(true)}
+            onRefresh={onRefresh}
+            refreshing={refreshing}
           />
 
           <Lol
