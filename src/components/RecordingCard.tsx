@@ -5,6 +5,7 @@ import type { ParsedRecording } from "../types/recording";
 import { useClickOutside } from "../hooks/useClickOutside";
 import type { GetIdToken } from "../lib/api-auth";
 import { formatLocalDateTime } from "../lib/format-local-date";
+import { shouldEagerLoadAudio } from "../lib/recording-audio-policy";
 import { RecordingAudioPlayer } from "./RecordingAudioPlayer";
 
 type RecordingCardProps = {
@@ -165,7 +166,12 @@ export function RecordingCard({
         <p className="recording-text">
           {recording.transcription || <em className="muted">No transcription</em>}
         </p>
-        <RecordingAudioPlayer uid={uid} fileName={recording.fileName} getIdToken={getIdToken} />
+        <RecordingAudioPlayer
+          uid={uid}
+          fileName={recording.fileName}
+          getIdToken={getIdToken}
+          loadMode={shouldEagerLoadAudio(recording.timestampMs) ? "eager" : "lazy"}
+        />
       </div>
     </article>
   );

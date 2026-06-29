@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GetIdToken } from "../lib/api-auth";
 import { fetchWithAuth } from "../lib/api-auth";
 import {
@@ -11,16 +11,39 @@ type Props = {
   uid: string;
   fileName: string | null;
   getIdToken: GetIdToken;
+  loadMode?: "eager" | "lazy";
 };
 
-export function RecordingAudioPlayer({ uid, fileName, getIdToken }: Props) {
+export function RecordingAudioPlayer({ uid, fileName, getIdToken, loadMode = "eager" }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(loadMode === "eager");
   const [resolved, setResolved] = useState<ResolvedRecordingAudio | null>(null);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!fileName) return;
+    if (loadMode !== "lazy" || shouldLoad) return;
+
+    const element = containerRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [loadMode, shouldLoad]);
+
+  useEffect(() => {
+    if (!shouldLoad || !fileName) return;
 
     let cancelled = false;
     let objectUrl: string | null = null;
@@ -66,37 +89,57 @@ export function RecordingAudioPlayer({ uid, fileName, getIdToken }: Props) {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [fileName, getIdToken, uid]);
+  }, [shouldLoad, fileName, getIdToken, uid]);
 
   if (!fileName) {
     return <p className="audio-status muted">No audio file</p>;
   }
 
+  if (!shouldLoad) {
+    return (
+      <div ref={containerRef} className="audio-status">
+        <button type="button" className="audio-load-btn" onClick={() => setShouldLoad(true)}>
+          Load audio
+        </button>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <p className="audio-status muted">Loading audio…</p>;
+    return (
+      <div ref={containerRef} className="audio-status muted">
+        Loading audio…
+      </div>
+    );
   }
 
   if (error) {
-    return <p className="audio-status error">{error}</p>;
+    return (
+      <div ref={containerRef} className="audio-status error">
+        {error}
+      </div>
+    );
   }
 
   if (!playbackUrl || !resolved) {
-    return null;
+    return <div ref={containerRef} />;
   }
 
   return (
-    <audio
-      className="recording-audio"
-      controls
-      preload="metadata"
-      src={playbackUrl}
-      onError={() => {
-        setPlaybackUrl((current) =>
-          current === resolved.firebaseUrl ? current : resolved.firebaseUrl,
-        );
-      }}
-    >
-      Your browser does not support audio playback.
-    </audio>
+    <div ref={containerRef}>
+      <audio
+        className="recording-audio"
+        controls
+        preload="metadata"
+        src={playbackUrl}
+        onError={() => {
+          setPlaybackUrl((current) =>
+            current === resolved.firebaseUrl ? current : resolved.firebaseUrl,
+          );
+        }}
+      >
+        Your browser does not support audio playback.
+      </audio>
+    </div>
   );
 }

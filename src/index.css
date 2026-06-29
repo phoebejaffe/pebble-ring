@@ -352,6 +352,22 @@ button:disabled {
   color: #ff7b7b;
 }
 
+.audio-load-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9ec0ff;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.audio-load-btn:hover {
+  color: #c5daff;
+}
+
 .recording-header {
   display: flex;
   flex-wrap: wrap;
