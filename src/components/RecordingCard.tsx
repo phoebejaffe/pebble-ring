@@ -11,6 +11,7 @@ type RecordingCardProps = {
   listChips: ParsedList[];
   availableLists: ParsedList[];
   busy: boolean;
+  onArchive: () => void;
   onDelete: () => void;
   onRetranscribe: () => void;
   onAddToList: (listId: string) => void;
@@ -23,6 +24,7 @@ export function RecordingCard({
   listChips,
   availableLists,
   busy,
+  onArchive,
   onDelete,
   onRetranscribe,
   onAddToList,
@@ -156,6 +158,15 @@ export function RecordingCard({
             </div>
           )}
           <div className="recording-actions">
+            <button
+              type="button"
+              className="icon-btn"
+              title="Archive"
+              disabled={busy}
+              onClick={onArchive}
+            >
+              📦
+            </button>
             <button
               type="button"
               className="icon-btn danger"

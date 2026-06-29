@@ -112,11 +112,25 @@ export function listIdsForRecording(items: ParsedItem[], recordingId: string): s
   return item?.parentListIds ?? [];
 }
 
+export type RecordingListFilterOptions = {
+  archivedListId?: string | null;
+  showArchived?: boolean;
+};
+
 export function recordingInList(
   items: ParsedItem[],
   recordingId: string,
   listId: string,
+  { archivedListId = null, showArchived = false }: RecordingListFilterOptions = {},
 ): boolean {
+  const archived =
+    archivedListId != null &&
+    listIdsForRecording(items, recordingId).includes(archivedListId);
+
+  if (!showArchived && archived && listId !== archivedListId) {
+    return false;
+  }
+
   if (listId === EVERYTHING_LIST_ID) return true;
   if (listId === INBOX_LIST_ID) {
     const item = itemForRecording(items, recordingId);

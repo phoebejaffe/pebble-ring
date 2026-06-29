@@ -12,9 +12,11 @@ import {
   addRecordingToList,
   createList,
   deleteRecordingItem,
+  ensureArchivedList,
   moveRecordingBetweenLists,
   removeRecordingFromList,
 } from "../lib/lists-api";
+import { findArchivedList } from "../lib/archive";
 import { useTranscriptionSettings } from "../contexts/TranscriptionSettingsContext";
 import { retranscribeRecording } from "../retranscribe";
 import type { RetranscribeError } from "../retranscribe";
@@ -62,6 +64,7 @@ function itemToContentData(item: ParsedItem): Record<string, unknown> {
 
 export function RecordingsView({ uid, content, onContentChange }: Props) {
   const [selectedListId, setSelectedListId] = useState(EVERYTHING_LIST_ID);
+  const [showArchived, setShowArchived] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -83,6 +86,14 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
 
   const listById = useMemo(() => new Map(lists.map((list) => [list.id, list])), [lists]);
 
+  const archivedList = useMemo(() => findArchivedList(lists), [lists]);
+  const archivedListId = archivedList?.id ?? null;
+
+  const listFilterOptions = useMemo(
+    () => ({ archivedListId, showArchived }),
+    [archivedListId, showArchived],
+  );
+
   const recordings = useMemo(
     () =>
       sortRecordingsNewestFirst(
@@ -96,9 +107,9 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
       if (itemForRecording(allItems, recording.id, { includeDeleted: true })?.deleted) {
         return false;
       }
-      return recordingInList(items, recording.id, selectedListId);
+      return recordingInList(items, recording.id, selectedListId, listFilterOptions);
     });
-  }, [recordings, allItems, items, selectedListId]);
+  }, [recordings, allItems, items, selectedListId, listFilterOptions]);
 
   const listCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -110,20 +121,20 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     for (const recording of recordings) {
       if (itemForRecording(allItems, recording.id, { includeDeleted: true })?.deleted) continue;
 
-      counts[EVERYTHING_LIST_ID] = (counts[EVERYTHING_LIST_ID] ?? 0) + 1;
-
-      const listIds = listIdsForRecording(items, recording.id);
-      if (listIds.length === 0) {
-        counts[INBOX_LIST_ID] = (counts[INBOX_LIST_ID] ?? 0) + 1;
-        continue;
+      if (recordingInList(items, recording.id, EVERYTHING_LIST_ID, listFilterOptions)) {
+        counts[EVERYTHING_LIST_ID] = (counts[EVERYTHING_LIST_ID] ?? 0) + 1;
       }
-
-      for (const listId of listIds) {
-        counts[listId] = (counts[listId] ?? 0) + 1;
+      if (recordingInList(items, recording.id, INBOX_LIST_ID, listFilterOptions)) {
+        counts[INBOX_LIST_ID] = (counts[INBOX_LIST_ID] ?? 0) + 1;
+      }
+      for (const list of lists) {
+        if (recordingInList(items, recording.id, list.id, listFilterOptions)) {
+          counts[list.id] = (counts[list.id] ?? 0) + 1;
+        }
       }
     }
     return counts;
-  }, [lists, items, allItems, recordings]);
+  }, [lists, items, allItems, recordings, listFilterOptions]);
 
   const sortedLists = useMemo(
     () => sortListsByCount(lists, listCounts),
@@ -152,6 +163,43 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
         return { id: r.id, data: next.raw as unknown as Record<string, unknown> };
       }),
     });
+  }
+
+  async function handleArchive(recording: ParsedRecording) {
+    setBusyId(recording.id);
+    setError(null);
+    try {
+      let targetList = archivedList;
+      if (!targetList) {
+        targetList = await ensureArchivedList(uid);
+        onContentChange({
+          ...content,
+          lists: [
+            ...content.lists,
+            {
+              id: targetList.id,
+              data: {
+                title: targetList.title,
+                icon: targetList.icon,
+                listKind: targetList.listKind,
+                seed: targetList.seed,
+                deleted: targetList.deleted,
+                createdAt: targetList.createdAt,
+                updatedAt: targetList.updatedAt,
+              },
+            },
+          ],
+        });
+      }
+
+      const existingItem = itemForRecording(allItems, recording.id, { includeDeleted: true });
+      const updatedItem = await addRecordingToList(uid, recording, existingItem, targetList.id);
+      mergeItem(updatedItem);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to archive");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function handleDelete(recording: ParsedRecording) {
@@ -316,6 +364,14 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={(e) => void handleDragEnd(e)}>
       <section className="recordings-view">
         <div className="recordings-toolbar">
+          <label className="toggle compact">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(event) => setShowArchived(event.target.checked)}
+            />
+            Show archived
+          </label>
           <button type="button" className="secondary-btn" onClick={() => void handleAddList()}>
             + List
           </button>
@@ -367,6 +423,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
                 listChips={listsForRecording(recording.id)}
                 availableLists={availableListsForRecording(recording.id)}
                 busy={busyId === recording.id}
+                onArchive={() => void handleArchive(recording)}
                 onDelete={() => void handleDelete(recording)}
                 onRetranscribe={() => void handleRetranscribe(recording)}
                 onAddToList={(listId) => void handleAddToList(recording, listId)}

@@ -178,6 +178,11 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
+.recordings-toolbar .toggle.compact {
+  margin-top: 0;
+  margin-right: auto;
+}
+
 .lists-row {
   display: flex;
   flex-wrap: nowrap;
