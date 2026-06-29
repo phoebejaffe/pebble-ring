@@ -3,6 +3,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+PRETTIER="./node_modules/.bin/prettier"
+ESLINT="./node_modules/.bin/eslint"
+
 collect_changed() {
   {
     git diff --name-only --diff-filter=d HEAD 2>/dev/null || true
@@ -29,14 +32,19 @@ while IFS= read -r file; do
   esac
 done < <(collect_changed)
 
+pids=()
+fail=0
+
 if [ "${#PRETTIER_FILES[@]}" -gt 0 ]; then
   echo "Prettier (changed files)..."
-  npx prettier --write "${PRETTIER_FILES[@]}"
+  "$PRETTIER" --write "${PRETTIER_FILES[@]}" &
+  pids+=($!)
 fi
 
 if [ "${#LINT_FILES[@]}" -gt 0 ]; then
   echo "ESLint (changed files)..."
-  npx eslint "${LINT_FILES[@]}"
+  "$ESLINT" --cache --cache-location .eslintcache "${LINT_FILES[@]}" &
+  pids+=($!)
 fi
 
 if [ "${#PRETTIER_FILES[@]}" -eq 0 ] && [ "${#LINT_FILES[@]}" -eq 0 ]; then
@@ -45,11 +53,18 @@ fi
 
 echo "Tests and build (parallel)..."
 npm run test:run &
-test_pid=$!
+pids+=($!)
 npm run build &
-build_pid=$!
+pids+=($!)
 
-wait "$test_pid"
-wait "$build_pid"
+for pid in "${pids[@]}"; do
+  if ! wait "$pid"; then
+    fail=1
+  fi
+done
+
+if [ "$fail" -ne 0 ]; then
+  exit 1
+fi
 
 echo "Verify passed."

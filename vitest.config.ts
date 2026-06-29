@@ -7,7 +7,7 @@ export default defineConfig({
     jsx: "automatic",
   },
   test: {
-    environment: "jsdom",
+    environment: "happy-dom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx", "server/**/*.test.ts"],
     setupFiles: ["src/test/setup.ts"],
   },
