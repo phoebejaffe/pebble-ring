@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { AssemblyAI } from "assemblyai";
 import type { AssemblyAiWordConfig } from "../src/lib/transcription-settings";
+import { requireAuth } from "./verify-auth";
 
 const MODEL = "universal-2";
 
@@ -18,6 +19,8 @@ export async function handleTranscribeRequest(
     res.end(JSON.stringify({ error: "Method not allowed" }));
     return;
   }
+
+  if (!(await requireAuth(req, res))) return;
 
   const apiKey = process.env.ASSEMBLYAI_API_KEY;
   if (!apiKey) {

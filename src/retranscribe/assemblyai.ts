@@ -1,5 +1,7 @@
 import type { TranscriptionSettings } from "../lib/transcription-settings";
 import { toAssemblyAiWordConfig } from "../lib/transcription-settings";
+import type { GetIdToken } from "../lib/api-auth";
+import { fetchWithAuth } from "../lib/api-auth";
 
 export type TranscribeApiResult = {
   transcription: string;
@@ -9,14 +11,19 @@ export type TranscribeApiResult = {
 export async function transcribeFromUrl(
   audioUrl: string,
   settings: TranscriptionSettings,
+  getIdToken: GetIdToken,
 ): Promise<TranscribeApiResult> {
   const wordConfig = toAssemblyAiWordConfig(settings);
 
-  const res = await fetch("/api/transcribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ audioUrl, wordConfig }),
-  });
+  const res = await fetchWithAuth(
+    "/api/transcribe",
+    getIdToken,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audioUrl, wordConfig }),
+    },
+  );
 
   const data = (await res.json()) as { transcript?: string; model?: string; error?: string };
 

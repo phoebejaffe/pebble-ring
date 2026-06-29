@@ -2,11 +2,15 @@ import { useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { EVERYTHING_LIST_ID } from "../types/list";
 import type { PebbleContent } from "../api";
+import { useAuth } from "../auth";
 import { useTranscriptionSettings } from "../contexts/TranscriptionSettingsContext";
 import { listDropCollisionDetection, useListDnD } from "../hooks/useListDnD";
 import { useRecordingMutations } from "../hooks/useRecordingMutations";
 import { useRecordingsData } from "../hooks/useRecordingsData";
+import type { ParsedRecording } from "../types/recording";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { ListsRow } from "./ListsRow";
+import { PromptDialog } from "./PromptDialog";
 import { RecordingCard } from "./RecordingCard";
 import { RecordingsToolbar } from "./RecordingsToolbar";
 
@@ -19,7 +23,10 @@ type Props = {
 export function RecordingsView({ uid, content, onContentChange }: Props) {
   const [selectedListId, setSelectedListId] = useState(EVERYTHING_LIST_ID);
   const [showArchived, setShowArchived] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ParsedRecording | null>(null);
+  const [addListOpen, setAddListOpen] = useState(false);
 
+  const { getIdToken } = useAuth();
   const { settings: transcriptionSettings } = useTranscriptionSettings();
 
   const {
@@ -43,7 +50,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     handleRemoveFromList,
     handleRetranscribe,
     handleMoveToList,
-    handleAddList,
+    handleCreateList,
   } = useRecordingMutations({
     uid,
     content,
@@ -55,6 +62,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     transcriptionSettings,
     selectedListId,
     onSelectList: setSelectedListId,
+    getIdToken,
   });
 
   const {
@@ -71,66 +79,97 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
   });
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={listDropCollisionDetection}
-      onDragStart={handleDragStart}
-      onDragCancel={handleDragCancel}
-      onDragEnd={handleDragEnd}
-    >
-      <section className="recordings-view">
-        <RecordingsToolbar
-          showArchived={showArchived}
-          onShowArchivedChange={setShowArchived}
-          onAddList={() => void handleAddList()}
-        />
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={listDropCollisionDetection}
+        onDragStart={handleDragStart}
+        onDragCancel={handleDragCancel}
+        onDragEnd={handleDragEnd}
+      >
+        <section className="recordings-view">
+          <RecordingsToolbar
+            showArchived={showArchived}
+            onShowArchivedChange={setShowArchived}
+            onAddList={() => setAddListOpen(true)}
+          />
 
-        <ListsRow
-          sortedLists={sortedLists}
-          listCounts={listCounts}
-          selectedListId={selectedListId}
-          dragging={draggingId != null}
-          onSelectList={setSelectedListId}
-        />
+          <ListsRow
+            sortedLists={sortedLists}
+            listCounts={listCounts}
+            selectedListId={selectedListId}
+            dragging={draggingId != null}
+            onSelectList={setSelectedListId}
+          />
 
-        {error && <p className="error">{error}</p>}
+          {error && <p className="error">{error}</p>}
 
-        <div className="recordings-list">
-          {visibleRecordings.length === 0 ? (
-            <p className="muted empty-state">
-              {selectedListId === EVERYTHING_LIST_ID
-                ? "No recordings yet."
-                : "No recordings in this list."}
-            </p>
-          ) : (
-            visibleRecordings.map((recording) => (
-              <RecordingCard
-                key={recording.id}
-                uid={uid}
-                recording={recording}
-                listChips={listsForRecording(recording.id)}
-                availableLists={availableListsForRecording(recording.id)}
-                busy={busyId === recording.id}
-                onArchive={() => void handleArchive(recording)}
-                onDelete={() => void handleDelete(recording)}
-                onRetranscribe={() => void handleRetranscribe(recording)}
-                onAddToList={(listId) => void handleAddToList(recording, listId)}
-                onRemoveFromList={(listId) => void handleRemoveFromList(recording, listId)}
-              />
-            ))
-          )}
-        </div>
-      </section>
+          <div className="recordings-list">
+            {visibleRecordings.length === 0 ? (
+              <p className="muted empty-state">
+                {selectedListId === EVERYTHING_LIST_ID
+                  ? "No recordings yet."
+                  : "No recordings in this list."}
+              </p>
+            ) : (
+              visibleRecordings.map((recording) => (
+                <RecordingCard
+                  key={recording.id}
+                  uid={uid}
+                  recording={recording}
+                  listChips={listsForRecording(recording.id)}
+                  availableLists={availableListsForRecording(recording.id)}
+                  busy={busyId === recording.id}
+                  getIdToken={getIdToken}
+                  onArchive={() => void handleArchive(recording)}
+                  onDelete={() => setDeleteTarget(recording)}
+                  onRetranscribe={() => void handleRetranscribe(recording)}
+                  onAddToList={(listId) => void handleAddToList(recording, listId)}
+                  onRemoveFromList={(listId) => void handleRemoveFromList(recording, listId)}
+                />
+              ))
+            )}
+          </div>
+        </section>
 
-      <DragOverlay>
-        {draggingRecording ? (
-          <article className="recording-card dragging overlay">
-            <div className="recording-body">
-              <p>{draggingRecording.transcription}</p>
-            </div>
-          </article>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay>
+          {draggingRecording ? (
+            <article className="recording-card dragging overlay">
+              <div className="recording-body">
+                <p>{draggingRecording.transcription}</p>
+              </div>
+            </article>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete recording?"
+        message="This will remove the recording from your Pebble lists. The recording itself is not permanently deleted from Firestore."
+        confirmLabel="Delete"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          const target = deleteTarget;
+          setDeleteTarget(null);
+          void handleDelete(target);
+        }}
+      />
+
+      <PromptDialog
+        open={addListOpen}
+        title="New list"
+        label="List name"
+        placeholder="Shopping"
+        confirmLabel="Create list"
+        onCancel={() => setAddListOpen(false)}
+        onConfirm={(name) => {
+          setAddListOpen(false);
+          void handleCreateList(name);
+        }}
+      />
+    </>
   );
 }

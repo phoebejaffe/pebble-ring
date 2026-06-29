@@ -29,6 +29,8 @@ npm run build      # typecheck + production build
 npm run test       # watch mode unit tests
 npm run test:run   # single-run unit tests
 npm run typecheck  # TypeScript only
+npm run lint       # ESLint
+npm run format     # Prettier write
 ```
 
 ## Features
@@ -47,6 +49,18 @@ npm run dev
 ```
 
 The retranscribe code lives in `src/retranscribe/` and can be removed independently — see `src/retranscribe/index.ts`.
+
+### Dev API authentication
+
+Vite dev/preview routes at `/api/transcribe` and `/api/recording-audio` require a Firebase ID token (`Authorization: Bearer …`). The client sends this automatically when you are signed in.
+
+For local debugging only, you can bypass auth:
+
+```bash
+PEBBLE_RING_SKIP_API_AUTH=true npm run dev
+```
+
+Static `dist/` builds do not include these API routes — retranscribe and proxied audio remain dev-server features unless you deploy a separate backend.
 
 Toggle **Raw JSON** in the header to see the full Firestore dump.
 

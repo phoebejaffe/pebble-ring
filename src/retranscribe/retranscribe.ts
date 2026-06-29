@@ -1,5 +1,6 @@
 import { updateRecordingTranscription } from "../lib/recordings-api";
 import { applyTranscriptionToRecording } from "../lib/recording-transcription";
+import type { GetIdToken } from "../lib/api-auth";
 import type { TranscriptionSettings } from "../lib/transcription-settings";
 import type { ParsedRecording } from "../types/recording";
 import { resolveRecordingAudioUrl } from "./audio";
@@ -10,6 +11,7 @@ export async function retranscribeRecording(
   uid: string,
   recording: ParsedRecording,
   settings: TranscriptionSettings,
+  getIdToken: GetIdToken,
 ): Promise<RetranscribeResult> {
   if (!recording.fileName) {
     const err: RetranscribeError = {
@@ -31,7 +33,7 @@ export async function retranscribeRecording(
   let transcription: string;
   let model: string;
   try {
-    const result = await transcribeFromUrl(audioUrl, settings);
+    const result = await transcribeFromUrl(audioUrl, settings, getIdToken);
     transcription = result.transcription;
     model = result.model;
   } catch (error) {

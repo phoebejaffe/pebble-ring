@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import type { ParsedList } from "../types/list";
 import type { ParsedRecording } from "../types/recording";
 import { useClickOutside } from "../hooks/useClickOutside";
+import type { GetIdToken } from "../lib/api-auth";
 import { formatLocalDateTime } from "../lib/format-local-date";
 import { RecordingAudioPlayer } from "./RecordingAudioPlayer";
 
@@ -12,6 +13,7 @@ type RecordingCardProps = {
   listChips: ParsedList[];
   availableLists: ParsedList[];
   busy: boolean;
+  getIdToken: GetIdToken;
   onArchive: () => void;
   onDelete: () => void;
   onRetranscribe: () => void;
@@ -25,6 +27,7 @@ export function RecordingCard({
   listChips,
   availableLists,
   busy,
+  getIdToken,
   onArchive,
   onDelete,
   onRetranscribe,
@@ -162,7 +165,7 @@ export function RecordingCard({
         <p className="recording-text">
           {recording.transcription || <em className="muted">No transcription</em>}
         </p>
-        <RecordingAudioPlayer uid={uid} fileName={recording.fileName} />
+        <RecordingAudioPlayer uid={uid} fileName={recording.fileName} getIdToken={getIdToken} />
       </div>
     </article>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import type { PebbleContent } from "../api";
+import type { GetIdToken } from "../lib/api-auth";
 import {
   addRecordingToList,
   deleteRecordingItem,
@@ -25,6 +26,7 @@ type Params = {
   transcriptionSettings: TranscriptionSettings;
   selectedListId: string;
   onSelectList: (listId: string) => void;
+  getIdToken: GetIdToken;
 };
 
 export function useRecordingMutations({
@@ -38,6 +40,7 @@ export function useRecordingMutations({
   transcriptionSettings,
   selectedListId,
   onSelectList,
+  getIdToken,
 }: Params) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,9 +79,6 @@ export function useRecordingMutations({
 
   const handleDelete = useCallback(
     async (recording: ParsedRecording) => {
-      if (!window.confirm("Delete this recording? It will be removed from your Pebble lists.")) {
-        return;
-      }
       setBusyId(recording.id);
       setError(null);
       try {
@@ -135,7 +135,12 @@ export function useRecordingMutations({
       setBusyId(recording.id);
       setError(null);
       try {
-        const result = await retranscribeRecording(uid, recording, transcriptionSettings);
+        const result = await retranscribeRecording(
+          uid,
+          recording,
+          transcriptionSettings,
+          getIdToken,
+        );
         onContentChange(updateRecordingInContent(content, recording.id, result.recording));
       } catch (err) {
         const message =
@@ -149,7 +154,7 @@ export function useRecordingMutations({
         setBusyId(null);
       }
     },
-    [content, onContentChange, transcriptionSettings, uid],
+    [content, getIdToken, onContentChange, transcriptionSettings, uid],
   );
 
   const handleMoveToList = useCallback(
@@ -181,19 +186,19 @@ export function useRecordingMutations({
     [allItems, mergeItem, onSelectList, recordings, selectedListId, uid],
   );
 
-  const handleAddList = useCallback(async () => {
-    const name = window.prompt("List name");
-    if (!name) return;
-
-    setError(null);
-    try {
-      const list = await createList(uid, name);
-      onContentChange(addListToContent(content, list));
-      onSelectList(list.id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create list");
-    }
-  }, [content, onContentChange, onSelectList, uid]);
+  const handleCreateList = useCallback(
+    async (name: string) => {
+      setError(null);
+      try {
+        const list = await createList(uid, name);
+        onContentChange(addListToContent(content, list));
+        onSelectList(list.id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create list");
+      }
+    },
+    [content, onContentChange, onSelectList, uid],
+  );
 
   return {
     busyId,
@@ -204,6 +209,6 @@ export function useRecordingMutations({
     handleRemoveFromList,
     handleRetranscribe,
     handleMoveToList,
-    handleAddList,
+    handleCreateList,
   };
 }

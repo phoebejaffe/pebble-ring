@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { requireAuth } from "./verify-auth";
 
 const ALLOWED_HOSTS = [
   "firebasestorage.googleapis.com",
@@ -28,6 +29,8 @@ export async function handleRecordingAudioRequest(
     res.end("Method not allowed");
     return;
   }
+
+  if (!(await requireAuth(req, res))) return;
 
   const requestUrl = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
   const src = requestUrl.searchParams.get("src");
