@@ -4,7 +4,10 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   background: #0b0b0d;
   color: #f2f2f2;
 }
@@ -211,7 +214,9 @@ button:disabled {
   border-radius: 12px;
   background: #141418;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .list-drop.active {
@@ -643,6 +648,71 @@ button:disabled {
 
 .danger-btn:hover {
   background: #a03842;
+}
+
+.undo-toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  z-index: 70;
+  width: min(420px, calc(100vw - 2rem));
+  transform: translateX(-50%);
+  border: 1px solid #2a2a30;
+  border-radius: 12px;
+  background: #141418;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.undo-toast-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+}
+
+.undo-toast-message {
+  color: #f2f2f2;
+  font-size: 0.95rem;
+}
+
+.undo-toast-link {
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7aa8ff;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.undo-toast-link:hover {
+  color: #a8c4ff;
+}
+
+.undo-toast-progress {
+  height: 3px;
+  background: #2a2a30;
+}
+
+.undo-toast-progress-bar {
+  height: 100%;
+  width: 100%;
+  background: #4f8cff;
+  transform-origin: left center;
+  animation: undo-toast-progress linear forwards;
+}
+
+@keyframes undo-toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 @media (max-width: 640px) {

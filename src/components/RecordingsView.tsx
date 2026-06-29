@@ -4,6 +4,7 @@ import { EVERYTHING_LIST_ID } from "../types/list";
 import type { PebbleContent } from "../api";
 import { useAuth } from "../auth";
 import { useTranscriptionSettings } from "../contexts/TranscriptionSettingsContext";
+import { useUndoToast } from "../hooks/useUndoToast";
 import { listDropCollisionDetection, useListDnD } from "../hooks/useListDnD";
 import { useRecordingMutations } from "../hooks/useRecordingMutations";
 import { useRecordingsData } from "../hooks/useRecordingsData";
@@ -13,6 +14,7 @@ import { ListsRow } from "./ListsRow";
 import { PromptDialog } from "./PromptDialog";
 import { RecordingCard } from "./RecordingCard";
 import { RecordingsToolbar } from "./RecordingsToolbar";
+import { UndoToast } from "./UndoToast";
 
 type Props = {
   uid: string;
@@ -36,10 +38,13 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     visibleRecordings,
     listCounts,
     sortedLists,
+    lists,
     listsForRecording,
     availableListsForRecording,
     items,
   } = useRecordingsData({ content, selectedListId, showArchived });
+
+  const { toast, showUndo, dismiss, durationMs } = useUndoToast();
 
   const {
     busyId,
@@ -57,12 +62,14 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     onContentChange,
     allItems,
     items,
+    lists,
     recordings,
     archivedList,
     transcriptionSettings,
     selectedListId,
     onSelectList: setSelectedListId,
     getIdToken,
+    showUndo,
   });
 
   const {
@@ -170,6 +177,14 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
           void handleCreateList(name);
         }}
       />
+      {toast && (
+        <UndoToast
+          message={toast.message}
+          durationMs={durationMs}
+          onUndo={toast.onUndo}
+          onDismiss={dismiss}
+        />
+      )}
     </>
   );
 }

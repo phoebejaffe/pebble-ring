@@ -1,19 +1,29 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PebbleContent } from "../api";
+import { ARCHIVED_LIST_TITLE } from "../lib/archive";
 import type { GetIdToken } from "../lib/api-auth";
+import { snapshotItemState } from "../lib/item-undo";
 import {
   addRecordingToList,
   deleteRecordingItem,
   moveRecordingBetweenLists,
   removeRecordingFromList,
+  restoreRecordingItem,
 } from "../lib/items-api";
+import { listLabel } from "../lib/list-label";
 import { createList, ensureArchivedList } from "../lib/lists-api";
-import { addListToContent, mergeItemInContent, updateRecordingInContent } from "../lib/pebble-content";
+import {
+  addListToContent,
+  mergeItemInContent,
+  updateRecordingInContent,
+} from "../lib/pebble-content";
 import type { TranscriptionSettings } from "../lib/transcription-settings";
 import { retranscribeRecording } from "../retranscribe";
 import type { RetranscribeError } from "../retranscribe";
 import { itemForRecording, type ParsedItem, type ParsedList } from "../types/list";
 import type { ParsedRecording } from "../types/recording";
+
+type ShowUndo = (message: string, onUndo: () => Promise<void>) => void;
 
 type Params = {
   uid: string;
@@ -21,12 +31,14 @@ type Params = {
   onContentChange: (content: PebbleContent) => void;
   allItems: ParsedItem[];
   items: ParsedItem[];
+  lists: ParsedList[];
   recordings: ParsedRecording[];
   archivedList: ParsedList | null;
   transcriptionSettings: TranscriptionSettings;
   selectedListId: string;
   onSelectList: (listId: string) => void;
   getIdToken: GetIdToken;
+  showUndo: ShowUndo;
 };
 
 export function useRecordingMutations({
@@ -35,21 +47,48 @@ export function useRecordingMutations({
   onContentChange,
   allItems,
   items,
+  lists,
   recordings,
   archivedList,
   transcriptionSettings,
   selectedListId,
   onSelectList,
   getIdToken,
+  showUndo,
 }: Params) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const contentRef = useRef(content);
+  const allItemsRef = useRef(allItems);
+
+  useEffect(() => {
+    contentRef.current = content;
+    allItemsRef.current = allItems;
+  }, [allItems, content]);
+
   const mergeItem = useCallback(
     (updatedItem: ParsedItem) => {
-      onContentChange(mergeItemInContent(content, updatedItem));
+      onContentChange(mergeItemInContent(contentRef.current, updatedItem));
     },
-    [content, onContentChange],
+    [onContentChange],
+  );
+
+  const registerItemUndo = useCallback(
+    (
+      message: string,
+      snapshot: ReturnType<typeof snapshotItemState>,
+      itemAfterChange: ParsedItem,
+      onRestored?: () => void,
+    ) => {
+      showUndo(message, async () => {
+        setError(null);
+        const restored = await restoreRecordingItem(uid, itemAfterChange, snapshot);
+        onContentChange(mergeItemInContent(contentRef.current, restored));
+        onRestored?.();
+      });
+    },
+    [onContentChange, showUndo, uid],
   );
 
   const handleArchive = useCallback(
@@ -57,6 +96,9 @@ export function useRecordingMutations({
       setBusyId(recording.id);
       setError(null);
       try {
+        const existingItem = itemForRecording(allItems, recording.id, { includeDeleted: true });
+        const snapshot = snapshotItemState(existingItem);
+
         let targetList = archivedList;
         let nextContent = content;
         if (!targetList) {
@@ -65,16 +107,17 @@ export function useRecordingMutations({
           onContentChange(nextContent);
         }
 
-        const existingItem = itemForRecording(allItems, recording.id, { includeDeleted: true });
         const updatedItem = await addRecordingToList(uid, recording, existingItem, targetList.id);
         onContentChange(mergeItemInContent(nextContent, updatedItem));
+
+        registerItemUndo(`Item moved to ${ARCHIVED_LIST_TITLE}`, snapshot, updatedItem);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to archive");
       } finally {
         setBusyId(null);
       }
     },
-    [allItems, archivedList, content, onContentChange, uid],
+    [allItems, archivedList, content, onContentChange, registerItemUndo, uid],
   );
 
   const handleDelete = useCallback(
@@ -83,15 +126,17 @@ export function useRecordingMutations({
       setError(null);
       try {
         const existingItem = itemForRecording(allItems, recording.id, { includeDeleted: true });
+        const snapshot = snapshotItemState(existingItem);
         const updatedItem = await deleteRecordingItem(uid, recording, existingItem);
         mergeItem(updatedItem);
+        registerItemUndo("Item deleted", snapshot, updatedItem);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Delete failed");
       } finally {
         setBusyId(null);
       }
     },
-    [allItems, mergeItem, uid],
+    [allItems, mergeItem, registerItemUndo, uid],
   );
 
   const handleAddToList = useCallback(
@@ -141,7 +186,9 @@ export function useRecordingMutations({
           transcriptionSettings,
           getIdToken,
         );
-        onContentChange(updateRecordingInContent(content, recording.id, result.recording));
+        onContentChange(
+          updateRecordingInContent(contentRef.current, recording.id, result.recording),
+        );
       } catch (err) {
         const message =
           err && typeof err === "object" && "message" in err
@@ -154,7 +201,7 @@ export function useRecordingMutations({
         setBusyId(null);
       }
     },
-    [content, getIdToken, onContentChange, transcriptionSettings, uid],
+    [getIdToken, onContentChange, transcriptionSettings, uid],
   );
 
   const handleMoveToList = useCallback(
@@ -168,6 +215,9 @@ export function useRecordingMutations({
       setError(null);
       try {
         const existingItem = itemForRecording(allItems, recordingId, { includeDeleted: true });
+        const snapshot = snapshotItemState(existingItem);
+        const previousListId = selectedListId;
+
         const updatedItem = await moveRecordingBetweenLists(
           uid,
           recording,
@@ -177,13 +227,17 @@ export function useRecordingMutations({
         );
         mergeItem(updatedItem);
         onSelectList(toListId);
+
+        registerItemUndo(`Item moved to ${listLabel(toListId, lists)}`, snapshot, updatedItem, () =>
+          onSelectList(previousListId),
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to move recording");
       } finally {
         setBusyId(null);
       }
     },
-    [allItems, mergeItem, onSelectList, recordings, selectedListId, uid],
+    [allItems, lists, mergeItem, onSelectList, recordings, registerItemUndo, selectedListId, uid],
   );
 
   const handleCreateList = useCallback(
@@ -191,13 +245,13 @@ export function useRecordingMutations({
       setError(null);
       try {
         const list = await createList(uid, name);
-        onContentChange(addListToContent(content, list));
+        onContentChange(addListToContent(contentRef.current, list));
         onSelectList(list.id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to create list");
       }
     },
-    [content, onContentChange, onSelectList, uid],
+    [onContentChange, onSelectList, uid],
   );
 
   return {

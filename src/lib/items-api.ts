@@ -122,3 +122,25 @@ export async function deleteRecordingItem(
   await setDoc(doc(db, firestorePaths.items(uid), item.id), itemToFirestore(item));
   return item;
 }
+
+export async function restoreRecordingItem(
+  uid: string,
+  currentItem: ParsedItem,
+  snapshot: { parentListIds: string[]; deleted: boolean },
+): Promise<ParsedItem> {
+  const now = Date.now();
+  const updated: ParsedItem = {
+    ...currentItem,
+    parentListIds: [...snapshot.parentListIds],
+    deleted: snapshot.deleted,
+    updatedAt: now,
+  };
+
+  await updateDoc(doc(db, firestorePaths.items(uid), currentItem.id), {
+    parentListIds: snapshot.parentListIds,
+    deleted: snapshot.deleted,
+    updatedAt: msToFirestore(now),
+  });
+
+  return updated;
+}
