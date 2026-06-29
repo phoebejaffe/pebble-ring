@@ -1,0 +1,85 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0b0b0d;
+  color: #f2f2f2;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.card {
+  max-width: 420px;
+  margin: 4rem auto;
+  padding: 2rem;
+  border: 1px solid #2a2a30;
+  border-radius: 16px;
+  background: #141418;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+}
+
+p {
+  line-height: 1.5;
+}
+
+.muted {
+  color: #9a9aa3;
+}
+
+.error {
+  color: #ff7b7b;
+}
+
+button {
+  margin-top: 1rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: #4f8cff;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  color: #9a9aa3;
+  font-size: 0.9rem;
+}
+
+.dump pre {
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  border: 1px solid #2a2a30;
+  border-radius: 12px;
+  background: #141418;
+  font-size: 12px;
+  line-height: 1.45;
+}
