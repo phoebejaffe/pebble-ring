@@ -195,6 +195,14 @@ button:disabled {
   scrollbar-width: thin;
 }
 
+.lists-row.drag-active {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-top: 0.35rem;
+  background: linear-gradient(#0b0b0d 70%, transparent);
+}
+
 .list-drop {
   flex: 0 0 auto;
   min-width: 100px;
@@ -252,7 +260,8 @@ button:disabled {
 }
 
 .recording-card.dragging {
-  opacity: 0.45;
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .recording-card.overlay {

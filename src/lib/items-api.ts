@@ -81,12 +81,16 @@ export async function moveRecordingBetweenLists(
 ): Promise<ParsedItem> {
   let parentListIds = existingItem ? [...existingItem.parentListIds] : [];
 
-  if (fromListId !== INBOX_LIST_ID && fromListId !== EVERYTHING_LIST_ID) {
-    parentListIds = parentListIds.filter((id) => id !== fromListId);
-  }
+  if (toListId === INBOX_LIST_ID) {
+    parentListIds = [];
+  } else {
+    if (fromListId !== INBOX_LIST_ID && fromListId !== EVERYTHING_LIST_ID) {
+      parentListIds = parentListIds.filter((id) => id !== fromListId);
+    }
 
-  if (toListId !== INBOX_LIST_ID && !parentListIds.includes(toListId)) {
-    parentListIds.push(toListId);
+    if (!parentListIds.includes(toListId)) {
+      parentListIds.push(toListId);
+    }
   }
 
   return upsertRecordingItem(uid, recording, existingItem, parentListIds);

@@ -35,7 +35,7 @@ export function RecordingCard({
   const listPickerRef = useRef<HTMLDivElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: recording.id,
     data: { type: "recording", recordingId: recording.id },
   });
@@ -62,17 +62,19 @@ export function RecordingCard({
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [modelMenuOpen]);
 
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined;
-
   return (
     <article
       ref={setNodeRef}
-      style={style}
       className={`recording-card ${isDragging ? "dragging" : ""}`}
     >
-      <button type="button" className="drag-handle" {...listeners} {...attributes} aria-label="Drag">
+      <button
+        type="button"
+        className="drag-handle"
+        style={{ touchAction: "none" }}
+        {...listeners}
+        {...attributes}
+        aria-label="Drag"
+      >
         ⠿
       </button>
       <div className="recording-body">

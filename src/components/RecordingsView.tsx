@@ -3,8 +3,11 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -44,6 +47,17 @@ type Props = {
   uid: string;
   content: PebbleContent;
   onContentChange: (content: PebbleContent) => void;
+};
+
+const listDropCollisionDetection: CollisionDetection = (args) => {
+  const listDroppables = args.droppableContainers.filter((container) =>
+    String(container.id).startsWith("list:"),
+  );
+
+  const pointerHits = pointerWithin({ ...args, droppableContainers: listDroppables });
+  if (pointerHits.length > 0) return pointerHits;
+
+  return rectIntersection({ ...args, droppableContainers: listDroppables });
 };
 
 function itemToContentData(item: ParsedItem): Record<string, unknown> {
@@ -288,15 +302,30 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     setDraggingId(String(event.active.id));
   }
 
+  function handleDragCancel() {
+    setDraggingId(null);
+  }
+
+  function resolveDropListId(event: DragEndEvent): string | null {
+    const overData = event.over?.data.current;
+    if (overData && typeof overData === "object" && overData.type === "list") {
+      return typeof overData.listId === "string" ? overData.listId : null;
+    }
+
+    const overId = event.over?.id ? String(event.over.id) : null;
+    if (!overId?.startsWith("list:")) return null;
+    return overId.slice("list:".length);
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     setDraggingId(null);
     const recordingId = String(event.active.id);
-    const overId = event.over?.id ? String(event.over.id) : null;
-    if (!overId?.startsWith("list:")) return;
+    const toListId = resolveDropListId(event);
+    if (!toListId) return;
 
-    const toListId = overId.replace("list:", "");
     const recording = recordings.find((r) => r.id === recordingId);
     if (!recording) return;
+    if (toListId === selectedListId) return;
 
     setBusyId(recordingId);
     setError(null);
@@ -361,7 +390,13 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={(e) => void handleDragEnd(e)}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={listDropCollisionDetection}
+      onDragStart={handleDragStart}
+      onDragCancel={handleDragCancel}
+      onDragEnd={(e) => void handleDragEnd(e)}
+    >
       <section className="recordings-view">
         <div className="recordings-toolbar">
           <label className="toggle compact">
@@ -377,7 +412,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
           </button>
         </div>
 
-        <div className="lists-row">
+        <div className={`lists-row${draggingId ? " drag-active" : ""}`}>
           <ListDropZone
             listId={EVERYTHING_LIST_ID}
             name="Everything"
