@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { EVERYTHING_LIST_ID, INBOX_LIST_ID, recordingInList, type ParsedItem } from "./list";
+import {
+  EVERYTHING_LIST_ID,
+  INBOX_LIST_ID,
+  recordingInList,
+  sortLolLists,
+  type ParsedItem,
+  type ParsedList,
+} from "./list";
 
 const archivedListId = "list-archived";
 const shoppingListId = "list-shopping";
@@ -65,5 +72,39 @@ describe("recordingInList", () => {
   it("matches explicit list membership", () => {
     expect(recordingInList(items, "rec-shopping", shoppingListId)).toBe(true);
     expect(recordingInList(items, "rec-unlabeled", shoppingListId)).toBe(false);
+  });
+});
+
+const archived: ParsedList = {
+  id: archivedListId,
+  title: "Archived",
+  icon: "📦",
+  listKind: "note",
+  seed: null,
+  deleted: false,
+  createdAt: 0,
+  updatedAt: 0,
+};
+
+const shopping: ParsedList = {
+  id: shoppingListId,
+  title: "Shopping",
+  icon: "🛒",
+  listKind: "note",
+  seed: null,
+  deleted: false,
+  createdAt: 0,
+  updatedAt: 0,
+};
+
+describe("sortLolLists", () => {
+  it("excludes Archived from the middle LOL section", () => {
+    const lol = sortLolLists(
+      [archived, shopping],
+      { [archived.id]: 99, [shopping.id]: 1 },
+      archived.id,
+    );
+
+    expect(lol.map((list) => list.id)).toEqual([shopping.id]);
   });
 });

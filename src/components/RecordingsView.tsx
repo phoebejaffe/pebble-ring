@@ -10,7 +10,7 @@ import { useRecordingMutations } from "../hooks/useRecordingMutations";
 import { useRecordingsData } from "../hooks/useRecordingsData";
 import type { ParsedRecording } from "../types/recording";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { ListsRow } from "./ListsRow";
+import { Lol } from "./Lol";
 import { PromptDialog } from "./PromptDialog";
 import { RecordingCard } from "./RecordingCard";
 import { RecordingsToolbar } from "./RecordingsToolbar";
@@ -37,7 +37,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     recordings,
     visibleRecordings,
     listCounts,
-    sortedLists,
+    lolLists,
     lists,
     listsForRecording,
     availableListsForRecording,
@@ -101,8 +101,9 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
             onAddList={() => setAddListOpen(true)}
           />
 
-          <ListsRow
-            sortedLists={sortedLists}
+          <Lol
+            lolLists={lolLists}
+            archivedList={archivedList}
             listCounts={listCounts}
             selectedListId={selectedListId}
             dragging={draggingId != null}

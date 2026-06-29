@@ -64,10 +64,8 @@ export function parseItem(id: string, data: Record<string, unknown>): ParsedItem
     parentListIds: Array.isArray(data.parentListIds)
       ? data.parentListIds.filter((id): id is string => typeof id === "string")
       : [],
-    sourceRecordingId:
-      typeof data.sourceRecordingId === "string" ? data.sourceRecordingId : null,
-    sourceToolCallId:
-      typeof data.sourceToolCallId === "string" ? data.sourceToolCallId : null,
+    sourceRecordingId: typeof data.sourceRecordingId === "string" ? data.sourceRecordingId : null,
+    sourceToolCallId: typeof data.sourceToolCallId === "string" ? data.sourceToolCallId : null,
     metadata: { ...metadata, type: metadata.type ?? "note" },
     deleted: !!data.deleted,
     createdAt: firestoreToMs(data.createdAt),
@@ -88,6 +86,17 @@ export function sortListsByCount(
     });
 }
 
+/** LOL = list of lists. Excludes Archived; that list is pinned at the end of the row. */
+export function sortLolLists(
+  lists: ParsedList[],
+  counts: Record<string, number>,
+  archivedListId: string | null = null,
+): ParsedList[] {
+  const withoutArchived =
+    archivedListId == null ? lists : lists.filter((list) => list.id !== archivedListId);
+  return sortListsByCount(withoutArchived, counts);
+}
+
 export function itemForRecording(
   items: ParsedItem[],
   recordingId: string,
@@ -95,8 +104,7 @@ export function itemForRecording(
 ): ParsedItem | null {
   return (
     items.find(
-      (item) =>
-        item.sourceRecordingId === recordingId && (includeDeleted || !item.deleted),
+      (item) => item.sourceRecordingId === recordingId && (includeDeleted || !item.deleted),
     ) ?? null
   );
 }

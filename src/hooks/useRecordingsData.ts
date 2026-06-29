@@ -9,12 +9,16 @@ import {
   parseItem,
   parseList,
   recordingInList,
-  sortListsByCount,
+  sortLolLists,
   type ParsedItem,
   type ParsedList,
   type RecordingListFilterOptions,
 } from "../types/list";
-import { parseRecording, sortRecordingsNewestFirst, type ParsedRecording } from "../types/recording";
+import {
+  parseRecording,
+  sortRecordingsNewestFirst,
+  type ParsedRecording,
+} from "../types/recording";
 
 type Params = {
   content: PebbleContent;
@@ -24,7 +28,8 @@ type Params = {
 
 export function useRecordingsData({ content, selectedListId, showArchived }: Params) {
   const lists = useMemo(
-    () => content.lists.map((list) => parseList(list.id, list.data)).filter((list) => !list.deleted),
+    () =>
+      content.lists.map((list) => parseList(list.id, list.data)).filter((list) => !list.deleted),
     [content.lists],
   );
 
@@ -87,9 +92,9 @@ export function useRecordingsData({ content, selectedListId, showArchived }: Par
     return counts;
   }, [lists, items, allItems, recordings, listFilterOptions]);
 
-  const sortedLists = useMemo(
-    () => sortListsByCount(lists, listCounts),
-    [lists, listCounts],
+  const lolLists = useMemo(
+    () => sortLolLists(lists, listCounts, archivedListId),
+    [lists, listCounts, archivedListId],
   );
 
   function listsForRecording(recordingId: string): ParsedList[] {
@@ -112,7 +117,7 @@ export function useRecordingsData({ content, selectedListId, showArchived }: Par
     recordings,
     visibleRecordings,
     listCounts,
-    sortedLists,
+    lolLists,
     listsForRecording,
     availableListsForRecording,
   };

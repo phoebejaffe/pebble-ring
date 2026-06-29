@@ -2,22 +2,24 @@ import { EVERYTHING_LIST_ID, INBOX_LIST_ID, type ParsedList } from "../types/lis
 import { ListDropZone } from "./ListDropZone";
 
 type Props = {
-  sortedLists: ParsedList[];
+  lolLists: ParsedList[];
+  archivedList: ParsedList | null;
   listCounts: Record<string, number>;
   selectedListId: string;
   dragging: boolean;
   onSelectList: (listId: string) => void;
 };
 
-export function ListsRow({
-  sortedLists,
+export function Lol({
+  lolLists,
+  archivedList,
   listCounts,
   selectedListId,
   dragging,
   onSelectList,
 }: Props) {
   return (
-    <div className={`lists-row${dragging ? " drag-active" : ""}`}>
+    <div className={`lol-row${dragging ? " drag-active" : ""}`}>
       <ListDropZone
         listId={EVERYTHING_LIST_ID}
         name="Everything"
@@ -26,7 +28,7 @@ export function ListsRow({
         droppable={false}
         onSelect={() => onSelectList(EVERYTHING_LIST_ID)}
       />
-      {sortedLists.map((list) => (
+      {lolLists.map((list) => (
         <ListDropZone
           key={list.id}
           listId={list.id}
@@ -43,6 +45,15 @@ export function ListsRow({
         active={selectedListId === INBOX_LIST_ID}
         onSelect={() => onSelectList(INBOX_LIST_ID)}
       />
+      {archivedList && (
+        <ListDropZone
+          listId={archivedList.id}
+          name={archivedList.title}
+          count={listCounts[archivedList.id] ?? 0}
+          active={selectedListId === archivedList.id}
+          onSelect={() => onSelectList(archivedList.id)}
+        />
+      )}
     </div>
   );
 }
