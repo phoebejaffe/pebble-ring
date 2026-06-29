@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { EVERYTHING_LIST_ID } from "../types/list";
 import type { PebbleContent } from "../api";
@@ -8,6 +8,11 @@ import { useUndoToast } from "../hooks/useUndoToast";
 import { listDropCollisionDetection, useListDnD } from "../hooks/useListDnD";
 import { useRecordingMutations } from "../hooks/useRecordingMutations";
 import { useRecordingsData } from "../hooks/useRecordingsData";
+import {
+  loadRecordingsViewPreferences,
+  saveRecordingsViewPreferences,
+  sanitizeSelectedListId,
+} from "../lib/recordings-view-preferences";
 import type { ParsedRecording } from "../types/recording";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Lol } from "./Lol";
@@ -25,8 +30,12 @@ type Props = {
 };
 
 export function RecordingsView({ uid, content, onContentChange, onRefresh, refreshing }: Props) {
-  const [selectedListId, setSelectedListId] = useState(EVERYTHING_LIST_ID);
-  const [showArchived, setShowArchived] = useState(false);
+  const [selectedListId, setSelectedListId] = useState(
+    () => loadRecordingsViewPreferences().selectedListId,
+  );
+  const [showArchived, setShowArchived] = useState(
+    () => loadRecordingsViewPreferences().showArchived,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ParsedRecording | null>(null);
   const [addListOpen, setAddListOpen] = useState(false);
@@ -46,6 +55,20 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
     availableListsForRecording,
     items,
   } = useRecordingsData({ content, selectedListId, showArchived, searchQuery });
+
+  useEffect(() => {
+    saveRecordingsViewPreferences({ selectedListId, showArchived });
+  }, [selectedListId, showArchived]);
+
+  useEffect(() => {
+    const validListIds = new Set(lists.map((list) => list.id));
+    setSelectedListId((current) =>
+      sanitizeSelectedListId(current, {
+        listIds: validListIds,
+        archivedListId: archivedList?.id ?? null,
+      }),
+    );
+  }, [lists, archivedList]);
 
   const { toasts, showUndo, dismiss, durationMs } = useUndoToast();
 
