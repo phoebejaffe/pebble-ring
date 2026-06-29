@@ -650,12 +650,19 @@ button:disabled {
   background: #a03842;
 }
 
-.undo-toast {
+.undo-toast-stack {
   position: fixed;
   bottom: 1.25rem;
   left: 1.25rem;
   z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   width: min(420px, calc(100vw - 2.5rem));
+}
+
+.undo-toast {
+  width: 100%;
   border: 1px solid #4a4a58;
   border-radius: 12px;
   background: #2a2a34;

@@ -1,43 +1,52 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type UndoToastState = {
+export type UndoToastEntry = {
+  id: string;
   message: string;
   onUndo: () => Promise<void>;
 };
 
 const UNDO_DURATION_MS = 10_000;
 
-export function useUndoToast() {
-  const [toast, setToast] = useState<UndoToastState | null>(null);
-  const timerRef = useRef<number | null>(null);
+function newToastId(): string {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `undo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  );
+}
 
-  const dismiss = useCallback(() => {
-    if (timerRef.current != null) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
+export function useUndoToast() {
+  const [toasts, setToasts] = useState<UndoToastEntry[]>([]);
+  const timersRef = useRef<Map<string, number>>(new Map());
+
+  const dismiss = useCallback((id: string) => {
+    const timer = timersRef.current.get(id);
+    if (timer != null) {
+      window.clearTimeout(timer);
+      timersRef.current.delete(id);
     }
-    setToast(null);
+    setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
   const showUndo = useCallback(
     (message: string, onUndo: () => Promise<void>) => {
-      dismiss();
-      setToast({ message, onUndo });
-      timerRef.current = window.setTimeout(() => {
-        timerRef.current = null;
-        setToast(null);
-      }, UNDO_DURATION_MS);
+      const id = newToastId();
+      setToasts((current) => [...current, { id, message, onUndo }]);
+      const timer = window.setTimeout(() => dismiss(id), UNDO_DURATION_MS);
+      timersRef.current.set(id, timer);
     },
     [dismiss],
   );
 
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      if (timerRef.current != null) {
-        window.clearTimeout(timerRef.current);
+      for (const timer of timers.values()) {
+        window.clearTimeout(timer);
       }
+      timers.clear();
     };
   }, []);
 
-  return { toast, showUndo, dismiss, durationMs: UNDO_DURATION_MS };
+  return { toasts, showUndo, dismiss, durationMs: UNDO_DURATION_MS };
 }

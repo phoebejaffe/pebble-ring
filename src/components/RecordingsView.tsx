@@ -14,7 +14,7 @@ import { Lol } from "./Lol";
 import { PromptDialog } from "./PromptDialog";
 import { RecordingCard } from "./RecordingCard";
 import { RecordingsToolbar } from "./RecordingsToolbar";
-import { UndoToast } from "./UndoToast";
+import { UndoToastStack } from "./UndoToastStack";
 
 type Props = {
   uid: string;
@@ -44,7 +44,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     items,
   } = useRecordingsData({ content, selectedListId, showArchived });
 
-  const { toast, showUndo, dismiss, durationMs } = useUndoToast();
+  const { toasts, showUndo, dismiss, durationMs } = useUndoToast();
 
   const {
     busyId,
@@ -178,14 +178,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
           void handleCreateList(name);
         }}
       />
-      {toast && (
-        <UndoToast
-          message={toast.message}
-          durationMs={durationMs}
-          onUndo={toast.onUndo}
-          onDismiss={dismiss}
-        />
-      )}
+      <UndoToastStack toasts={toasts} durationMs={durationMs} onDismiss={dismiss} />
     </>
   );
 }
