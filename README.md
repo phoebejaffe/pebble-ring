@@ -29,8 +29,9 @@ npm run build      # typecheck + production build
 npm run test       # watch mode unit tests
 npm run test:run   # single-run unit tests
 npm run typecheck  # TypeScript only
-npm run lint       # ESLint
-npm run format     # Prettier write
+npm run lint       # ESLint (all files)
+npm run format     # Prettier write (all files)
+npm run verify     # Prettier + ESLint on changed files, then test + build (run before commit)
 ```
 
 ## Features

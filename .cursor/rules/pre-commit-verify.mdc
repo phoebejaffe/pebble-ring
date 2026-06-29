@@ -1,0 +1,20 @@
+---
+description: Run verify checks on changed files before every commit
+alwaysApply: true
+---
+
+# Pre-commit verification
+
+Before creating any git commit in this repo:
+
+1. Run `npm run verify` from the project root.
+2. If Prettier modified files, re-stage them (`git add` the affected paths).
+3. Only commit when verify exits 0.
+
+`npm run verify` (via `scripts/verify.sh`):
+
+- **Prettier** — `--write` on changed `*.ts`, `*.tsx`, `*.js`, `*.css`, `*.json`, `*.md` (staged, unstaged, and untracked)
+- **ESLint** — on changed `*.ts`, `*.tsx`, `*.js`, `*.jsx`, `*.mjs`, `*.cjs`
+- **Vitest + build** — full `test:run` and `build` in parallel
+
+Do not skip verify unless the user explicitly asks to bypass checks.
