@@ -4,7 +4,7 @@ import { EAGER_AUDIO_MS, shouldEagerLoadAudio } from "./recording-audio-policy";
 describe("shouldEagerLoadAudio", () => {
   const now = new Date("2026-06-29T12:00:00Z").getTime();
 
-  it("eager-loads recordings from the last 7 days", () => {
+  it("eager-loads recordings from the last 3 days", () => {
     expect(shouldEagerLoadAudio(now - EAGER_AUDIO_MS + 1, now)).toBe(true);
     expect(shouldEagerLoadAudio(now - 24 * 60 * 60 * 1000, now)).toBe(true);
   });
