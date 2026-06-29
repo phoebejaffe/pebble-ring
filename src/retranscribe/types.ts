@@ -1,6 +1,9 @@
+import type { ParsedRecording } from "../types/recording";
+
 export type RetranscribeResult = {
   transcription: string;
   model: string;
+  recording: ParsedRecording;
 };
 
 export type RetranscribeError = {

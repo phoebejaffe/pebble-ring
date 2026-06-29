@@ -1,11 +1,15 @@
 import type { TranscriptionSettings } from "../lib/transcription-settings";
 import { toAssemblyAiWordConfig } from "../lib/transcription-settings";
-import type { RetranscribeResult } from "./types";
+
+export type TranscribeApiResult = {
+  transcription: string;
+  model: string;
+};
 
 export async function transcribeFromUrl(
   audioUrl: string,
   settings: TranscriptionSettings,
-): Promise<RetranscribeResult> {
+): Promise<TranscribeApiResult> {
   const wordConfig = toAssemblyAiWordConfig(settings);
 
   const res = await fetch("/api/transcribe", {

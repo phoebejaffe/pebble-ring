@@ -75,12 +75,6 @@ export function parseItem(id: string, data: Record<string, unknown>): ParsedItem
   };
 }
 
-export function sortLists(lists: ParsedList[]): ParsedList[] {
-  return [...lists]
-    .filter((list) => !list.deleted)
-    .sort((a, b) => a.title.localeCompare(b.title));
-}
-
 export function sortListsByCount(
   lists: ParsedList[],
   counts: Record<string, number>,
@@ -112,6 +106,15 @@ export function listIdsForRecording(items: ParsedItem[], recordingId: string): s
   return item?.parentListIds ?? [];
 }
 
+export function isRecordingArchived(
+  items: ParsedItem[],
+  recordingId: string,
+  archivedListId: string | null,
+): boolean {
+  if (!archivedListId) return false;
+  return listIdsForRecording(items, recordingId).includes(archivedListId);
+}
+
 export type RecordingListFilterOptions = {
   archivedListId?: string | null;
   showArchived?: boolean;
@@ -123,9 +126,7 @@ export function recordingInList(
   listId: string,
   { archivedListId = null, showArchived = false }: RecordingListFilterOptions = {},
 ): boolean {
-  const archived =
-    archivedListId != null &&
-    listIdsForRecording(items, recordingId).includes(archivedListId);
+  const archived = isRecordingArchived(items, recordingId, archivedListId);
 
   if (!showArchived && archived && listId !== archivedListId) {
     return false;

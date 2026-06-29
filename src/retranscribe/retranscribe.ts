@@ -1,4 +1,5 @@
 import { updateRecordingTranscription } from "../lib/recordings-api";
+import { applyTranscriptionToRecording } from "../lib/recording-transcription";
 import type { TranscriptionSettings } from "../lib/transcription-settings";
 import type { ParsedRecording } from "../types/recording";
 import { resolveRecordingAudioUrl } from "./audio";
@@ -27,9 +28,12 @@ export async function retranscribeRecording(
     throw err;
   }
 
-  let result: RetranscribeResult;
+  let transcription: string;
+  let model: string;
   try {
-    result = await transcribeFromUrl(audioUrl, settings);
+    const result = await transcribeFromUrl(audioUrl, settings);
+    transcription = result.transcription;
+    model = result.model;
   } catch (error) {
     const err: RetranscribeError = {
       code: "transcribe_failed",
@@ -38,13 +42,11 @@ export async function retranscribeRecording(
     throw err;
   }
 
-  await updateRecordingTranscription(
-    uid,
-    recording.id,
-    recording.raw,
-    result.transcription,
-    result.model,
-  );
+  await updateRecordingTranscription(uid, recording.id, recording.raw, transcription, model);
 
-  return result;
+  return {
+    transcription,
+    model,
+    recording: applyTranscriptionToRecording(recording, transcription, model),
+  };
 }

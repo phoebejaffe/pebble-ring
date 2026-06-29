@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 type Props = {
   onSignOut: () => void;
@@ -9,26 +10,7 @@ export function HeaderMenu({ onSignOut, onShowRawJson }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
+  useClickOutside(rootRef, () => setOpen(false), { enabled: open, listenEscape: true });
 
   return (
     <div className="header-menu" ref={rootRef}>

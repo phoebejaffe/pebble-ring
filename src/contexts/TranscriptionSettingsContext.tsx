@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  createWordPreferenceId,
   DEFAULT_TRANSCRIPTION_SETTINGS,
   loadTranscriptionSettings,
   saveTranscriptionSettings,
@@ -37,7 +38,7 @@ export function TranscriptionSettingsProvider({ children }: { children: ReactNod
         ...current,
         wordPreferences: [
           ...current.wordPreferences,
-          { id: `word_${Date.now()}`, preferred: "", alternatives: [] },
+          { id: createWordPreferenceId(), preferred: "", alternatives: [] },
         ],
       };
       saveTranscriptionSettings(next);

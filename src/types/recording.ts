@@ -1,9 +1,6 @@
-import { firestoreToMs } from "../lib/firestore-time";
+import { firestoreToMs, type FirestoreTimestamp } from "../lib/firestore-time";
 
-export type FirestoreTimestamp = {
-  epochSeconds: number;
-  nanosecondsOfSecond: number;
-};
+export type { FirestoreTimestamp };
 
 export type RecordingEntry = {
   timestamp: FirestoreTimestamp | number;

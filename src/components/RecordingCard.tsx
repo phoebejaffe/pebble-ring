@@ -1,7 +1,8 @@
-import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { useEffect, useRef, useState } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { useRef, useState } from "react";
 import type { ParsedList } from "../types/list";
 import type { ParsedRecording } from "../types/recording";
+import { useClickOutside } from "../hooks/useClickOutside";
 import { formatLocalDateTime } from "../lib/format-local-date";
 import { RecordingAudioPlayer } from "./RecordingAudioPlayer";
 
@@ -40,33 +41,11 @@ export function RecordingCard({
     data: { type: "recording", recordingId: recording.id },
   });
 
-  useEffect(() => {
-    if (!listPickerOpen) return;
-    function onPointerDown(event: MouseEvent) {
-      if (listPickerRef.current && !listPickerRef.current.contains(event.target as Node)) {
-        setListPickerOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [listPickerOpen]);
-
-  useEffect(() => {
-    if (!modelMenuOpen) return;
-    function onPointerDown(event: MouseEvent) {
-      if (modelMenuRef.current && !modelMenuRef.current.contains(event.target as Node)) {
-        setModelMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [modelMenuOpen]);
+  useClickOutside(listPickerRef, () => setListPickerOpen(false), { enabled: listPickerOpen });
+  useClickOutside(modelMenuRef, () => setModelMenuOpen(false), { enabled: modelMenuOpen });
 
   return (
-    <article
-      ref={setNodeRef}
-      className={`recording-card ${isDragging ? "dragging" : ""}`}
-    >
+    <article ref={setNodeRef} className={`recording-card ${isDragging ? "dragging" : ""}`}>
       <button
         type="button"
         className="drag-handle"
@@ -186,49 +165,5 @@ export function RecordingCard({
         <RecordingAudioPlayer uid={uid} fileName={recording.fileName} />
       </div>
     </article>
-  );
-}
-
-type ListDropProps = {
-  listId: string;
-  name: string;
-  count: number;
-  active: boolean;
-  droppable?: boolean;
-  onSelect: () => void;
-};
-
-export function ListDropZone({
-  listId,
-  name,
-  count,
-  active,
-  droppable = true,
-  onSelect,
-}: ListDropProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `list:${listId}`,
-    data: { type: "list", listId },
-    disabled: !droppable,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      role="button"
-      tabIndex={0}
-      className={`list-drop ${active ? "active" : ""} ${isOver ? "over" : ""}`}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-    >
-      <span className="list-name">
-        {name} <span className="list-count">({count})</span>
-      </span>
-    </div>
   );
 }

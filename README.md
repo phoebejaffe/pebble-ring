@@ -21,6 +21,16 @@ This uses the same Firebase project as the official Pebble / Index web app:
 - **Auth**: Firebase Google sign-in (`coreapp-ce061`)
 - **Data**: Firestore collections at `recordings/{uid}/recordings`, `items/{uid}/items`, `lists/{uid}/lists`, and `users/{uid}`
 
+## Scripts
+
+```bash
+npm run dev        # local dev server
+npm run build      # typecheck + production build
+npm run test       # watch mode unit tests
+npm run test:run   # single-run unit tests
+npm run typecheck  # TypeScript only
+```
+
 ## Features
 
 - Recordings sorted newest-first

@@ -2,21 +2,29 @@ import { collection, doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { firestorePaths } from "../config";
 import { msToFirestore } from "./firestore-time";
-import type { ParsedList } from "../types/list";
 import { ARCHIVED_LIST_TITLE } from "./archive";
+import type { ParsedList } from "../types/list";
 
-function newDocId(uid: string, kind: "items" | "lists"): string {
-  const path = kind === "items" ? firestorePaths.items(uid) : firestorePaths.lists(uid);
-  return doc(collection(db, path)).id;
+function newListId(uid: string): string {
+  return doc(collection(db, firestorePaths.lists(uid))).id;
 }
 
-export async function createList(uid: string, title: string): Promise<ParsedList> {
+type CreateListOptions = {
+  icon?: string;
+  defaultTitle?: string;
+};
+
+export async function createList(
+  uid: string,
+  title: string,
+  { icon = "📝", defaultTitle = "New list" }: CreateListOptions = {},
+): Promise<ParsedList> {
   const now = Date.now();
-  const id = newDocId(uid, "lists");
+  const id = newListId(uid);
   const list: ParsedList = {
     id,
-    title: title.trim() || "New list",
-    icon: "📝",
+    title: title.trim() || defaultTitle,
+    icon,
     listKind: "note",
     seed: null,
     deleted: false,
@@ -38,35 +46,8 @@ export async function createList(uid: string, title: string): Promise<ParsedList
 }
 
 export async function ensureArchivedList(uid: string): Promise<ParsedList> {
-  const now = Date.now();
-  const id = newDocId(uid, "lists");
-  const list: ParsedList = {
-    id,
-    title: ARCHIVED_LIST_TITLE,
+  return createList(uid, ARCHIVED_LIST_TITLE, {
     icon: "📦",
-    listKind: "note",
-    seed: null,
-    deleted: false,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await setDoc(doc(db, firestorePaths.lists(uid), id), {
-    createdAt: msToFirestore(now),
-    updatedAt: msToFirestore(now),
-    title: list.title,
-    icon: list.icon,
-    listKind: list.listKind,
-    seed: null,
-    deleted: false,
+    defaultTitle: ARCHIVED_LIST_TITLE,
   });
-
-  return list;
 }
-
-export {
-  addRecordingToList,
-  deleteRecordingItem,
-  moveRecordingBetweenLists,
-  removeRecordingFromList,
-} from "./items-api";
