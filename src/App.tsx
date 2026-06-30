@@ -5,6 +5,7 @@ import { RecordingsView } from "./components/RecordingsView";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { HeaderMenu } from "./components/HeaderMenu";
 import { RawJsonModal } from "./components/RawJsonModal";
+import { TipsModal } from "./components/TipsModal";
 import { TranscriptionSettingsProvider } from "./contexts/TranscriptionSettingsContext";
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [rawJsonOpen, setRawJsonOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [tipsOpen, setTipsOpen] = useState(false);
 
   const refreshContent = useCallback(async () => {
     if (!user) return;
@@ -84,19 +86,16 @@ export function App() {
     <TranscriptionSettingsProvider>
       <main className="page wide">
         <header className="header">
-          <div>
-            <h1>Pebble Ring</h1>
-            <p className="muted">Signed in as {user.email ?? user.uid}</p>
-          </div>
-          <div className="header-actions">
-            <button type="button" className="secondary-btn" onClick={() => setSettingsOpen(true)}>
-              Settings
-            </button>
-            <HeaderMenu
-              onShowRawJson={() => setRawJsonOpen(true)}
-              onSignOut={() => void signOut()}
-            />
-          </div>
+          <h1>Pebble Ring</h1>
+          <HeaderMenu
+            userLabel={user.email ?? user.uid}
+            refreshing={refreshing}
+            onRefresh={() => void refreshContent()}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenTips={() => setTipsOpen(true)}
+            onShowRawJson={() => setRawJsonOpen(true)}
+            onSignOut={() => void signOut()}
+          />
         </header>
 
         {error && <p className="error">{error}</p>}
@@ -104,16 +103,12 @@ export function App() {
         {fetchError && <p className="error">{fetchError}</p>}
 
         {content && (
-          <RecordingsView
-            uid={user.uid}
-            content={content}
-            onContentChange={setContent}
-            onRefresh={() => void refreshContent()}
-            refreshing={refreshing}
-          />
+          <RecordingsView uid={user.uid} content={content} onContentChange={setContent} />
         )}
 
         <RawJsonModal open={rawJsonOpen} content={content} onClose={() => setRawJsonOpen(false)} />
+
+        <TipsModal open={tipsOpen} onClose={() => setTipsOpen(false)} />
 
         <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </main>

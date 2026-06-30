@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { EVERYTHING_LIST_ID } from "../types/list";
 import type { PebbleContent } from "../api";
@@ -14,7 +14,10 @@ import {
   sanitizeSelectedListId,
 } from "../lib/recordings-view-preferences";
 import type { ParsedRecording } from "../types/recording";
+import { buildRecordingItemJson } from "../lib/recording-item-json";
+import { formatLocalDateTime } from "../lib/format-local-date";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { JsonModal } from "./JsonModal";
 import { Lol } from "./Lol";
 import { PromptDialog } from "./PromptDialog";
 import { RecordingCard } from "./RecordingCard";
@@ -25,11 +28,9 @@ type Props = {
   uid: string;
   content: PebbleContent;
   onContentChange: (content: PebbleContent) => void;
-  onRefresh: () => void;
-  refreshing: boolean;
 };
 
-export function RecordingsView({ uid, content, onContentChange, onRefresh, refreshing }: Props) {
+export function RecordingsView({ uid, content, onContentChange }: Props) {
   const [selectedListId, setSelectedListId] = useState(
     () => loadRecordingsViewPreferences().selectedListId,
   );
@@ -38,6 +39,7 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ParsedRecording | null>(null);
+  const [jsonTarget, setJsonTarget] = useState<ParsedRecording | null>(null);
   const [addListOpen, setAddListOpen] = useState(false);
 
   const { getIdToken } = useAuth();
@@ -111,6 +113,14 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
     onMoveToList: handleMoveToList,
   });
 
+  const handleDeleteClick = (recording: ParsedRecording, event: MouseEvent<HTMLButtonElement>) => {
+    if (event.metaKey) {
+      void handleDelete(recording);
+      return;
+    }
+    setDeleteTarget(recording);
+  };
+
   return (
     <>
       <DndContext
@@ -126,9 +136,6 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
             onShowArchivedChange={setShowArchived}
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
-            onAddList={() => setAddListOpen(true)}
-            onRefresh={onRefresh}
-            refreshing={refreshing}
           />
 
           <Lol
@@ -138,6 +145,7 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
             selectedListId={selectedListId}
             dragging={draggingId != null}
             onSelectList={setSelectedListId}
+            onAddList={() => setAddListOpen(true)}
           />
 
           {error && <p className="error">{error}</p>}
@@ -162,10 +170,11 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
                   busy={busyId === recording.id}
                   getIdToken={getIdToken}
                   onArchive={() => void handleArchive(recording)}
-                  onDelete={() => setDeleteTarget(recording)}
+                  onDelete={(event) => handleDeleteClick(recording, event)}
                   onRetranscribe={() => void handleRetranscribe(recording)}
                   onAddToList={(listId) => void handleAddToList(recording, listId)}
                   onRemoveFromList={(listId) => void handleRemoveFromList(recording, listId)}
+                  onShowJson={() => setJsonTarget(recording)}
                 />
               ))
             )}
@@ -196,6 +205,14 @@ export function RecordingsView({ uid, content, onContentChange, onRefresh, refre
           setDeleteTarget(null);
           void handleDelete(target);
         }}
+      />
+
+      <JsonModal
+        open={jsonTarget != null}
+        title="Item JSON"
+        subtitle={jsonTarget ? formatLocalDateTime(jsonTarget.timestampMs) : undefined}
+        data={jsonTarget ? buildRecordingItemJson(content, jsonTarget) : null}
+        onClose={() => setJsonTarget(null)}
       />
 
       <PromptDialog

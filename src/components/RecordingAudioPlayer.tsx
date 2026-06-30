@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { GetIdToken } from "../lib/api-auth";
 import { fetchWithAuth } from "../lib/api-auth";
 import {
+  isKnownMissingAudio,
+  markMissingAudio,
   recordingAudioProxyUrl,
-  resolveRecordingAudio,
-  type ResolvedRecordingAudio,
 } from "../lib/recording-audio";
 
 type Props = {
@@ -14,10 +14,11 @@ type Props = {
   loadMode?: "eager" | "lazy";
 };
 
+const MISSING_AUDIO_MESSAGE = "Audio not found. Try opening the Pebble app to sync.";
+
 export function RecordingAudioPlayer({ uid, fileName, getIdToken, loadMode = "eager" }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldLoad, setShouldLoad] = useState(loadMode === "eager");
-  const [resolved, setResolved] = useState<ResolvedRecordingAudio | null>(null);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,26 +46,31 @@ export function RecordingAudioPlayer({ uid, fileName, getIdToken, loadMode = "ea
   useEffect(() => {
     if (!shouldLoad || !fileName) return;
 
+    if (isKnownMissingAudio(uid, fileName)) {
+      setError(MISSING_AUDIO_MESSAGE);
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     let objectUrl: string | null = null;
 
     setLoading(true);
     setError(null);
-    setResolved(null);
     setPlaybackUrl(null);
 
     async function loadAudio() {
       try {
-        const audio = await resolveRecordingAudio(uid, fileName!);
+        const proxyUrl = recordingAudioProxyUrl(uid, fileName!);
+        const response = await fetchWithAuth(proxyUrl, getIdToken);
         if (cancelled) return;
-        if (!audio) {
-          setError("Audio not found in storage");
+
+        if (response.status === 404) {
+          markMissingAudio(uid, fileName!);
+          setError(MISSING_AUDIO_MESSAGE);
           return;
         }
 
-        setResolved(audio);
-        const proxyUrl = recordingAudioProxyUrl(audio);
-        const response = await fetchWithAuth(proxyUrl, getIdToken);
         if (!response.ok) {
           throw new Error("Failed to load audio");
         }
@@ -121,23 +127,13 @@ export function RecordingAudioPlayer({ uid, fileName, getIdToken, loadMode = "ea
     );
   }
 
-  if (!playbackUrl || !resolved) {
+  if (!playbackUrl) {
     return <div ref={containerRef} />;
   }
 
   return (
     <div ref={containerRef}>
-      <audio
-        className="recording-audio"
-        controls
-        preload="metadata"
-        src={playbackUrl}
-        onError={() => {
-          setPlaybackUrl((current) =>
-            current === resolved.firebaseUrl ? current : resolved.firebaseUrl,
-          );
-        }}
-      >
+      <audio className="recording-audio" controls preload="metadata" src={playbackUrl}>
         Your browser does not support audio playback.
       </audio>
     </div>

@@ -1,5 +1,5 @@
 import { DndContext } from "@dnd-kit/core";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RecordingCard } from "./RecordingCard";
@@ -54,6 +54,7 @@ function renderCard(overrides: Partial<Parameters<typeof RecordingCard>[0]> = {}
     onRetranscribe: vi.fn(),
     onAddToList: vi.fn(),
     onRemoveFromList: vi.fn(),
+    onShowJson: vi.fn(),
     ...overrides,
   };
 
@@ -72,7 +73,7 @@ describe("RecordingCard", () => {
     expect(screen.getByRole("button", { name: "🛒 Shopping" })).toBeInTheDocument();
   });
 
-  it("calls onDelete when delete is clicked", async () => {
+  it("passes the click event to onDelete", async () => {
     const onDelete = vi.fn();
     const user = userEvent.setup();
     renderCard({ onDelete });
@@ -80,6 +81,28 @@ describe("RecordingCard", () => {
     await user.click(screen.getByTitle("Delete"));
 
     expect(onDelete).toHaveBeenCalledOnce();
+    expect(onDelete.mock.calls[0][0].metaKey).toBe(false);
+  });
+
+  it("passes metaKey on cmd-click delete", () => {
+    const onDelete = vi.fn();
+    renderCard({ onDelete });
+
+    fireEvent.click(screen.getByTitle("Delete"), { metaKey: true });
+
+    expect(onDelete).toHaveBeenCalledOnce();
+    expect(onDelete.mock.calls[0][0].metaKey).toBe(true);
+  });
+
+  it("opens card menu and shows JSON", async () => {
+    const onShowJson = vi.fn();
+    const user = userEvent.setup();
+    renderCard({ onShowJson });
+
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    await user.click(screen.getByRole("menuitem", { name: "Show JSON" }));
+
+    expect(onShowJson).toHaveBeenCalledOnce();
   });
 
   it("disables actions while busy", () => {

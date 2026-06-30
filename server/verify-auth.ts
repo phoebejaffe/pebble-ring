@@ -4,6 +4,7 @@ import { firebaseConfig } from "../src/config";
 export type VerifiedUser = {
   uid: string;
   email?: string;
+  idToken: string | null;
 };
 
 function readBearerToken(req: IncomingMessage): string | null {
@@ -31,7 +32,7 @@ export async function verifyFirebaseIdToken(token: string): Promise<VerifiedUser
   const user = data.users?.[0];
   if (!user?.localId) return null;
 
-  return { uid: user.localId, email: user.email };
+  return { uid: user.localId, email: user.email, idToken: token };
 }
 
 export function isApiAuthSkipped(): boolean {
@@ -43,7 +44,7 @@ export async function requireAuth(
   res: ServerResponse,
 ): Promise<VerifiedUser | null> {
   if (isApiAuthSkipped()) {
-    return { uid: "dev" };
+    return { uid: "dev", idToken: null };
   }
 
   const token = readBearerToken(req);

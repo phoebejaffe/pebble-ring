@@ -1,5 +1,5 @@
 import { useDraggable } from "@dnd-kit/core";
-import { useRef, useState } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import type { ParsedList } from "../types/list";
 import type { ParsedRecording } from "../types/recording";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -16,10 +16,11 @@ type RecordingCardProps = {
   busy: boolean;
   getIdToken: GetIdToken;
   onArchive: () => void;
-  onDelete: () => void;
+  onDelete: (event: MouseEvent<HTMLButtonElement>) => void;
   onRetranscribe: () => void;
   onAddToList: (listId: string) => void;
   onRemoveFromList: (listId: string) => void;
+  onShowJson: () => void;
 };
 
 export function RecordingCard({
@@ -34,11 +35,14 @@ export function RecordingCard({
   onRetranscribe,
   onAddToList,
   onRemoveFromList,
+  onShowJson,
 }: RecordingCardProps) {
   const [listPickerOpen, setListPickerOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [cardMenuOpen, setCardMenuOpen] = useState(false);
   const listPickerRef = useRef<HTMLDivElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
+  const cardMenuRef = useRef<HTMLDivElement>(null);
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: recording.id,
@@ -47,6 +51,10 @@ export function RecordingCard({
 
   useClickOutside(listPickerRef, () => setListPickerOpen(false), { enabled: listPickerOpen });
   useClickOutside(modelMenuRef, () => setModelMenuOpen(false), { enabled: modelMenuOpen });
+  useClickOutside(cardMenuRef, () => setCardMenuOpen(false), {
+    enabled: cardMenuOpen,
+    listenEscape: true,
+  });
 
   return (
     <article ref={setNodeRef} className={`recording-card ${isDragging ? "dragging" : ""}`}>
@@ -161,6 +169,35 @@ export function RecordingCard({
             >
               🗑️
             </button>
+            <div className="tag-picker" ref={cardMenuRef}>
+              <button
+                type="button"
+                className="icon-btn card-menu-trigger"
+                title="More options"
+                aria-label="More options"
+                aria-expanded={cardMenuOpen}
+                aria-haspopup="menu"
+                disabled={busy}
+                onClick={() => setCardMenuOpen((open) => !open)}
+              >
+                ···
+              </button>
+              {cardMenuOpen && (
+                <div className="tag-menu card-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="tag-menu-item"
+                    onClick={() => {
+                      setCardMenuOpen(false);
+                      onShowJson();
+                    }}
+                  >
+                    Show JSON
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <p className="recording-text">

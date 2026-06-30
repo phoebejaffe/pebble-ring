@@ -82,16 +82,14 @@ button:disabled {
 
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.header h1 {
+  margin: 0;
 }
 
 .header-menu {
@@ -141,6 +139,25 @@ button:disabled {
   background: #22222a;
 }
 
+.menu-item:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.menu-item:disabled:hover {
+  background: transparent;
+}
+
+.menu-info {
+  margin: 0;
+  padding: 0.45rem 0.75rem 0.65rem;
+  color: #9a9aa3;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  border-bottom: 1px solid #2a2a30;
+  margin-bottom: 0.25rem;
+}
+
 .toggle {
   display: inline-flex;
   align-items: center;
@@ -183,11 +200,11 @@ button:disabled {
 
 .recordings-toolbar .toggle.compact {
   margin-top: 0;
-  margin-right: auto;
 }
 
 .recordings-search {
-  flex: 1;
+  margin-left: auto;
+  flex: 0 1 280px;
   min-width: 0;
   max-width: 280px;
   padding: 0.45rem 0.65rem;
@@ -249,6 +266,29 @@ button:disabled {
 .list-drop.over {
   border-color: #7aa8ff;
   background: #1a2540;
+}
+
+.lol-new-list-btn {
+  flex: 0 0 auto;
+  padding: 0.65rem 0.9rem;
+  border: 1px dashed #3a3a44;
+  border-radius: 12px;
+  background: #141418;
+  color: #9ec0ff;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+
+.lol-new-list-btn:hover {
+  border-color: #4f8cff;
+  background: #182033;
+  color: #c5daff;
 }
 
 .list-name {
@@ -493,6 +533,18 @@ button:disabled {
   background: #3a2024;
 }
 
+.card-menu-trigger {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #d5d5dc;
+}
+
+.card-menu {
+  right: 0;
+  left: auto;
+}
+
 .settings-backdrop {
   position: fixed;
   inset: 0;
@@ -677,6 +729,21 @@ button:disabled {
   display: flex;
   justify-content: flex-end;
   gap: 0.65rem;
+}
+
+.tips-modal .dialog-title {
+  margin-bottom: 1rem;
+}
+
+.tips-list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  color: #d5d5dc;
+  line-height: 1.5;
+}
+
+.tips-list li + li {
+  margin-top: 0.75rem;
 }
 
 .danger-btn {

@@ -2,15 +2,33 @@ import { useRef, useState } from "react";
 import { useClickOutside } from "../hooks/useClickOutside";
 
 type Props = {
-  onSignOut: () => void;
+  userLabel: string;
+  refreshing: boolean;
+  onRefresh: () => void;
+  onOpenSettings: () => void;
+  onOpenTips: () => void;
   onShowRawJson: () => void;
+  onSignOut: () => void;
 };
 
-export function HeaderMenu({ onSignOut, onShowRawJson }: Props) {
+export function HeaderMenu({
+  userLabel,
+  refreshing,
+  onRefresh,
+  onOpenSettings,
+  onOpenTips,
+  onShowRawJson,
+  onSignOut,
+}: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(rootRef, () => setOpen(false), { enabled: open, listenEscape: true });
+
+  function closeMenu(action: () => void) {
+    setOpen(false);
+    action();
+  }
 
   return (
     <div className="header-menu" ref={rootRef}>
@@ -26,14 +44,37 @@ export function HeaderMenu({ onSignOut, onShowRawJson }: Props) {
       </button>
       {open && (
         <div className="menu-dropdown" role="menu">
+          <p className="menu-info">Signed in as {userLabel}</p>
           <button
             type="button"
             role="menuitem"
             className="menu-item"
-            onClick={() => {
-              setOpen(false);
-              onShowRawJson();
-            }}
+            disabled={refreshing}
+            onClick={() => closeMenu(onRefresh)}
+          >
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="menu-item"
+            onClick={() => closeMenu(onOpenSettings)}
+          >
+            Settings
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="menu-item"
+            onClick={() => closeMenu(onOpenTips)}
+          >
+            Tips
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="menu-item"
+            onClick={() => closeMenu(onShowRawJson)}
           >
             Show raw JSON
           </button>
@@ -41,10 +82,7 @@ export function HeaderMenu({ onSignOut, onShowRawJson }: Props) {
             type="button"
             role="menuitem"
             className="menu-item"
-            onClick={() => {
-              setOpen(false);
-              onSignOut();
-            }}
+            onClick={() => closeMenu(onSignOut)}
           >
             Sign out
           </button>

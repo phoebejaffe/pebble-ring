@@ -1,11 +1,17 @@
 import { defineConfig, loadEnv, type Plugin, type PreviewServer, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
 import { handleTranscribeRequest } from "./server/transcribe-api";
-import { handleRecordingAudioRequest } from "./server/recording-audio-api";
+import {
+  handleRecordingAudioRequest,
+  handleRecordingAudioResolveRequest,
+} from "./server/recording-audio-api";
 
 function registerApiRoutes(middlewares: ViteDevServer["middlewares"]) {
   middlewares.use("/api/transcribe", (req, res) => {
     void handleTranscribeRequest(req, res);
+  });
+  middlewares.use("/api/recording-audio-resolve", (req, res) => {
+    void handleRecordingAudioResolveRequest(req, res);
   });
   middlewares.use("/api/recording-audio", (req, res) => {
     void handleRecordingAudioRequest(req, res);

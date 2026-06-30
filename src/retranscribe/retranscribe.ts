@@ -21,7 +21,7 @@ export async function retranscribeRecording(
     throw err;
   }
 
-  const audioUrl = await resolveRecordingAudioUrl(uid, recording.fileName);
+  const audioUrl = await resolveRecordingAudioUrl(uid, recording.fileName, getIdToken);
   if (!audioUrl) {
     const err: RetranscribeError = {
       code: "no_audio",

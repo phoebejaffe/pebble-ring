@@ -8,6 +8,7 @@ type Props = {
   selectedListId: string;
   dragging: boolean;
   onSelectList: (listId: string) => void;
+  onAddList: () => void;
 };
 
 export function Lol({
@@ -17,6 +18,7 @@ export function Lol({
   selectedListId,
   dragging,
   onSelectList,
+  onAddList,
 }: Props) {
   return (
     <div className={`lol-row${dragging ? " drag-active" : ""}`}>
@@ -54,6 +56,9 @@ export function Lol({
           onSelect={() => onSelectList(archivedList.id)}
         />
       )}
+      <button type="button" className="lol-new-list-btn" onClick={onAddList}>
+        New List
+      </button>
     </div>
   );
 }

@@ -3,9 +3,6 @@ type Props = {
   onShowArchivedChange: (value: boolean) => void;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
-  onAddList: () => void;
-  onRefresh: () => void;
-  refreshing: boolean;
 };
 
 export function RecordingsToolbar({
@@ -13,9 +10,6 @@ export function RecordingsToolbar({
   onShowArchivedChange,
   searchQuery,
   onSearchQueryChange,
-  onAddList,
-  onRefresh,
-  refreshing,
 }: Props) {
   return (
     <div className="recordings-toolbar">
@@ -35,18 +29,6 @@ export function RecordingsToolbar({
         onChange={(event) => onSearchQueryChange(event.target.value)}
         aria-label="Search recordings"
       />
-      <button
-        type="button"
-        className="secondary-btn"
-        disabled={refreshing}
-        onClick={onRefresh}
-        title="Reload from Firestore"
-      >
-        {refreshing ? "Refreshing…" : "Refresh"}
-      </button>
-      <button type="button" className="secondary-btn" onClick={onAddList}>
-        + List
-      </button>
     </div>
   );
 }
