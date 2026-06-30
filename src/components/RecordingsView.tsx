@@ -82,6 +82,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     handleAddToList,
     handleRemoveFromList,
     handleRetranscribe,
+    handleUpdateTranscription,
     handleMoveToList,
     handleCreateList,
   } = useRecordingMutations({
@@ -175,6 +176,9 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
                   onAddToList={(listId) => void handleAddToList(recording, listId)}
                   onRemoveFromList={(listId) => void handleRemoveFromList(recording, listId)}
                   onShowJson={() => setJsonTarget(recording)}
+                  onUpdateTranscription={(transcription) =>
+                    void handleUpdateTranscription(recording, transcription)
+                  }
                 />
               ))
             )}

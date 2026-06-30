@@ -55,6 +55,7 @@ function renderCard(overrides: Partial<Parameters<typeof RecordingCard>[0]> = {}
     onAddToList: vi.fn(),
     onRemoveFromList: vi.fn(),
     onShowJson: vi.fn(),
+    onUpdateTranscription: vi.fn(),
     ...overrides,
   };
 
@@ -112,13 +113,17 @@ describe("RecordingCard", () => {
     expect(screen.getByTitle("Archive")).toBeDisabled();
   });
 
-  it("opens retranscribe menu from model chip", async () => {
+  it("retranscribes from the card menu", async () => {
     const onRetranscribe = vi.fn();
     const user = userEvent.setup();
     renderCard({ onRetranscribe });
 
-    await user.click(screen.getByRole("button", { name: "universal-2" }));
-    await user.click(screen.getByRole("menuitem", { name: /Retranscribe/ }));
+    await user.click(screen.getByRole("button", { name: "More options" }));
+    await user.click(
+      screen.getByRole("menuitem", {
+        name: /Audio transcribed with universal-2 — Retranscribe with universal-2/,
+      }),
+    );
 
     expect(onRetranscribe).toHaveBeenCalledOnce();
   });

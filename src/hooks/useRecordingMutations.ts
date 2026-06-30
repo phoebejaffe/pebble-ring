@@ -17,6 +17,8 @@ import {
   mergeItemInContent,
   updateRecordingInContent,
 } from "../lib/pebble-content";
+import { updateRecordingTranscription } from "../lib/recordings-api";
+import { applyTranscriptionToRecording } from "../lib/recording-transcription";
 import type { TranscriptionSettings } from "../lib/transcription-settings";
 import { retranscribeRecording } from "../retranscribe";
 import type { RetranscribeError } from "../retranscribe";
@@ -204,6 +206,29 @@ export function useRecordingMutations({
     [getIdToken, onContentChange, transcriptionSettings, uid],
   );
 
+  const handleUpdateTranscription = useCallback(
+    async (recording: ParsedRecording, transcription: string) => {
+      setBusyId(recording.id);
+      setError(null);
+      try {
+        const model = recording.transcribedUsingModel ?? "user-edited";
+        await updateRecordingTranscription(uid, recording.id, recording.raw, transcription, model);
+        onContentChange(
+          updateRecordingInContent(
+            contentRef.current,
+            recording.id,
+            applyTranscriptionToRecording(recording, transcription, model),
+          ),
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to update transcription");
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [onContentChange, uid],
+  );
+
   const handleMoveToList = useCallback(
     async (recordingId: string, toListId: string) => {
       if (toListId === selectedListId) return;
@@ -262,6 +287,7 @@ export function useRecordingMutations({
     handleAddToList,
     handleRemoveFromList,
     handleRetranscribe,
+    handleUpdateTranscription,
     handleMoveToList,
     handleCreateList,
   };

@@ -304,49 +304,48 @@ button:disabled {
 }
 
 .recordings-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .recordings-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .empty-state {
+  grid-column: 1 / -1;
   padding: 2rem 0;
   text-align: center;
 }
 
 .recording-card {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.75rem;
-  align-items: start;
+  width: 100%;
+  max-width: 920px;
   padding: 0.9rem 1rem;
   border: 1px solid #2a2a30;
   border-radius: 14px;
   background: #141418;
+  cursor: grab;
 }
 
 .recording-card.dragging {
   opacity: 0.35;
   pointer-events: none;
+  cursor: grabbing;
 }
 
 .recording-card.overlay {
   opacity: 0.95;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-}
-
-.drag-handle {
-  padding: 0.25rem 0.4rem;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #9a9aa3;
-  font-size: 1.1rem;
-  cursor: grab;
-}
-
-.drag-handle:active {
   cursor: grabbing;
+}
+
+.recording-body {
+  min-width: 0;
 }
 
 .recording-body p {
@@ -360,6 +359,29 @@ button:disabled {
   color: #f2f2f2;
   font-size: 1rem;
   line-height: 1.45;
+}
+
+.recording-text-editable {
+  cursor: text;
+  border-radius: 8px;
+  transition: background 0.15s;
+  outline: none;
+  white-space: pre-wrap;
+}
+
+.recording-text-editable:hover,
+.recording-text-editable:focus {
+  background: #1a1a22;
+}
+
+.recording-text-editable:focus {
+  box-shadow: inset 0 0 0 1px #4a6a9a;
+}
+
+.recording-text-editable:empty::before {
+  content: attr(data-placeholder);
+  color: #9a9aa3;
+  font-style: italic;
 }
 
 .audio-load {
@@ -409,6 +431,19 @@ button:disabled {
 }
 
 .recording-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.recording-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.recording-list-chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -543,6 +578,13 @@ button:disabled {
 .card-menu {
   right: 0;
   left: auto;
+  min-width: 12rem;
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
+.card-menu-item-wrap {
+  white-space: normal;
+  line-height: 1.35;
 }
 
 .settings-backdrop {
