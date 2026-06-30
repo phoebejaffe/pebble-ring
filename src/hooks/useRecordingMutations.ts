@@ -266,14 +266,16 @@ export function useRecordingMutations({
   );
 
   const handleCreateList = useCallback(
-    async (name: string) => {
+    async (name: string): Promise<ParsedList | null> => {
       setError(null);
       try {
         const list = await createList(uid, name);
         onContentChange(addListToContent(contentRef.current, list));
         onSelectList(list.id);
+        return list;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to create list");
+        return null;
       }
     },
     [onContentChange, onSelectList, uid],

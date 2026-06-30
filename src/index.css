@@ -551,6 +551,17 @@ button:disabled {
   background: #22222a;
 }
 
+.tag-menu-item-new-list {
+  border-top: 1px solid #2a2a30;
+  margin-top: 0.25rem;
+  padding-top: 0.55rem;
+  color: #9ec0ff;
+}
+
+.tag-menu-item-new-list:hover:not(:disabled) {
+  color: #c5daff;
+}
+
 .recording-actions {
   display: flex;
   gap: 0.25rem;

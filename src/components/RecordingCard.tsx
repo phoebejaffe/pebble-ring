@@ -21,6 +21,7 @@ type RecordingCardProps = {
   onRetranscribe: () => void;
   onAddToList: (listId: string) => void;
   onRemoveFromList: (listId: string) => void;
+  onNewList: () => void;
   onShowJson: () => void;
   onUpdateTranscription: (transcription: string) => void;
 };
@@ -37,6 +38,7 @@ export function RecordingCard({
   onRetranscribe,
   onAddToList,
   onRemoveFromList,
+  onNewList,
   onShowJson,
   onUpdateTranscription,
 }: RecordingCardProps) {
@@ -160,39 +162,48 @@ export function RecordingCard({
                   </span>
                 </button>
               ))}
-              {availableLists.length > 0 && (
-                <div className="tag-picker" ref={listPickerRef}>
-                  <button
-                    type="button"
-                    className="list-chip list-chip-add"
-                    title="Add to list"
-                    disabled={busy}
-                    onClick={() => setListPickerOpen((open) => !open)}
-                    aria-label="Add to list"
-                  >
-                    +
-                  </button>
-                  {listPickerOpen && (
-                    <div className="tag-menu" role="menu">
-                      {availableLists.map((list) => (
-                        <button
-                          key={list.id}
-                          type="button"
-                          role="menuitem"
-                          className="tag-menu-item"
-                          onClick={() => {
-                            setListPickerOpen(false);
-                            onAddToList(list.id);
-                          }}
-                        >
-                          {list.icon ? `${list.icon} ` : ""}
-                          {list.title}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="tag-picker" ref={listPickerRef}>
+                <button
+                  type="button"
+                  className="list-chip list-chip-add"
+                  title="Add to list"
+                  disabled={busy}
+                  onClick={() => setListPickerOpen((open) => !open)}
+                  aria-label="Add to list"
+                >
+                  +
+                </button>
+                {listPickerOpen && (
+                  <div className="tag-menu" role="menu">
+                    {availableLists.map((list) => (
+                      <button
+                        key={list.id}
+                        type="button"
+                        role="menuitem"
+                        className="tag-menu-item"
+                        onClick={() => {
+                          setListPickerOpen(false);
+                          onAddToList(list.id);
+                        }}
+                      >
+                        {list.icon ? `${list.icon} ` : ""}
+                        {list.title}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="tag-menu-item tag-menu-item-new-list"
+                      onClick={() => {
+                        setListPickerOpen(false);
+                        onNewList();
+                      }}
+                    >
+                      New list
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

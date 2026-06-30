@@ -41,6 +41,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<ParsedRecording | null>(null);
   const [jsonTarget, setJsonTarget] = useState<ParsedRecording | null>(null);
   const [addListOpen, setAddListOpen] = useState(false);
+  const [addListForRecording, setAddListForRecording] = useState<ParsedRecording | null>(null);
 
   const { getIdToken } = useAuth();
   const { settings: transcriptionSettings } = useTranscriptionSettings();
@@ -146,7 +147,10 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
             selectedListId={selectedListId}
             dragging={draggingId != null}
             onSelectList={setSelectedListId}
-            onAddList={() => setAddListOpen(true)}
+            onAddList={() => {
+              setAddListForRecording(null);
+              setAddListOpen(true);
+            }}
           />
 
           {error && <p className="error">{error}</p>}
@@ -174,6 +178,10 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
                   onDelete={(event) => handleDeleteClick(recording, event)}
                   onRetranscribe={() => void handleRetranscribe(recording)}
                   onAddToList={(listId) => void handleAddToList(recording, listId)}
+                  onNewList={() => {
+                    setAddListForRecording(recording);
+                    setAddListOpen(true);
+                  }}
                   onRemoveFromList={(listId) => void handleRemoveFromList(recording, listId)}
                   onShowJson={() => setJsonTarget(recording)}
                   onUpdateTranscription={(transcription) =>
@@ -225,10 +233,20 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
         label="List name"
         placeholder="Shopping"
         confirmLabel="Create list"
-        onCancel={() => setAddListOpen(false)}
+        onCancel={() => {
+          setAddListOpen(false);
+          setAddListForRecording(null);
+        }}
         onConfirm={(name) => {
           setAddListOpen(false);
-          void handleCreateList(name);
+          const recording = addListForRecording;
+          setAddListForRecording(null);
+          void (async () => {
+            const list = await handleCreateList(name);
+            if (list && recording) {
+              await handleAddToList(recording, list.id);
+            }
+          })();
         }}
       />
       <UndoToastStack toasts={toasts} durationMs={durationMs} onDismiss={dismiss} />

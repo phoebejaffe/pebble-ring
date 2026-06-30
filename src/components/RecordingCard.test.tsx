@@ -54,6 +54,7 @@ function renderCard(overrides: Partial<Parameters<typeof RecordingCard>[0]> = {}
     onRetranscribe: vi.fn(),
     onAddToList: vi.fn(),
     onRemoveFromList: vi.fn(),
+    onNewList: vi.fn(),
     onShowJson: vi.fn(),
     onUpdateTranscription: vi.fn(),
     ...overrides,
@@ -111,6 +112,17 @@ describe("RecordingCard", () => {
 
     expect(screen.getByTitle("Delete")).toBeDisabled();
     expect(screen.getByTitle("Archive")).toBeDisabled();
+  });
+
+  it("opens new list prompt from the add-to-list menu", async () => {
+    const onNewList = vi.fn();
+    const user = userEvent.setup();
+    renderCard({ onNewList, availableLists: [shoppingList] });
+
+    await user.click(screen.getByLabelText("Add to list"));
+    await user.click(screen.getByRole("menuitem", { name: "New list" }));
+
+    expect(onNewList).toHaveBeenCalledOnce();
   });
 
   it("retranscribes from the card menu", async () => {
