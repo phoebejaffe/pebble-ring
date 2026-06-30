@@ -86,6 +86,7 @@ export function useRecordingsData({
 
     for (const recording of recordings) {
       if (itemForRecording(allItems, recording.id, { includeDeleted: true })?.deleted) continue;
+      if (!recordingMatchesSearch(recording, searchQuery)) continue;
 
       if (recordingInList(items, recording.id, EVERYTHING_LIST_ID, listFilterOptions)) {
         counts[EVERYTHING_LIST_ID] = (counts[EVERYTHING_LIST_ID] ?? 0) + 1;
@@ -100,7 +101,7 @@ export function useRecordingsData({
       }
     }
     return counts;
-  }, [lists, items, allItems, recordings, listFilterOptions]);
+  }, [lists, items, allItems, recordings, listFilterOptions, searchQuery]);
 
   const lolLists = useMemo(
     () => sortLolLists(lists, listCounts, archivedListId),

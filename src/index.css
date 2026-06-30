@@ -397,14 +397,20 @@ button:disabled {
   font-weight: 500;
 }
 
+.recording-audio-wrap {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 0.65rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #141418;
+}
+
 .recording-audio {
   display: block;
   width: 100%;
-  max-width: 420px;
   height: 28px;
-  margin-top: 0.65rem;
   border: 0;
-  border-radius: 8px;
   background: #141418;
   filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(1.05);
 }

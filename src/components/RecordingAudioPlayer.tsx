@@ -132,7 +132,7 @@ export function RecordingAudioPlayer({ uid, fileName, getIdToken, loadMode = "ea
   }
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} className="recording-audio-wrap">
       <audio className="recording-audio" controls preload="metadata" src={playbackUrl}>
         Your browser does not support audio playback.
       </audio>
