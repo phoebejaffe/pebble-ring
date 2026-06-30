@@ -8,13 +8,24 @@ import {
   type ReactNode,
 } from "react";
 import {
+  browserPopupRedirectResolver,
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
   type User,
 } from "firebase/auth";
 import { auth } from "./firebase";
+
+function formatAuthError(err: unknown): string {
+  const code = (err as { code?: string }).code;
+  if (code === "auth/internal-error") {
+    return "Google sign-in could not load (auth/internal-error). Hard refresh this page (Cmd+Shift+R). If it persists, clear site data for this origin.";
+  }
+  return err instanceof Error ? err.message : "Failed to sign in";
+}
 
 type AuthContextValue = {
   user: User | null;
@@ -33,6 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    void getRedirectResult(auth, browserPopupRedirectResolver).catch((err) => {
+      const code = (err as { code?: string }).code;
+      if (code === "auth/popup-closed-by-user") return;
+      setError(formatAuthError(err));
+    });
+  }, []);
+
+  useEffect(() => {
     return onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setLoading(false);
@@ -41,12 +60,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
+    const provider = new GoogleAuthProvider();
+
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      await signInWithPopup(auth, provider, browserPopupRedirectResolver);
     } catch (err) {
       const code = (err as { code?: string }).code;
       if (code === "auth/popup-closed-by-user") return;
-      setError(err instanceof Error ? err.message : "Failed to sign in");
+
+      if (code === "auth/popup-blocked" || code === "auth/internal-error") {
+        try {
+          await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
+          return;
+        } catch (redirectErr) {
+          setError(formatAuthError(redirectErr));
+          return;
+        }
+      }
+
+      setError(formatAuthError(err));
     }
   }, []);
 
