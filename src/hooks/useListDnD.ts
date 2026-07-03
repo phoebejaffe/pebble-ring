@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   PointerSensor,
   pointerWithin,
@@ -37,10 +37,11 @@ type Params = {
 
 export function useListDnD({ recordings, selectedListId, onMoveToList }: Params) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const suppressListSelectUntilRef = useRef(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const draggingRecording = draggingId
-    ? recordings.find((recording) => recording.id === draggingId) ?? null
+    ? (recordings.find((recording) => recording.id === draggingId) ?? null)
     : null;
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -58,10 +59,16 @@ export function useListDnD({ recordings, selectedListId, onMoveToList }: Params)
       const toListId = resolveDropListId(event);
       if (!toListId || toListId === selectedListId) return;
       if (!recordings.some((recording) => recording.id === recordingId)) return;
+
+      suppressListSelectUntilRef.current = Date.now() + 300;
       void onMoveToList(recordingId, toListId);
     },
     [onMoveToList, recordings, selectedListId],
   );
+
+  const shouldSuppressListSelect = useCallback(() => {
+    return Date.now() < suppressListSelectUntilRef.current;
+  }, []);
 
   return {
     sensors,
@@ -70,5 +77,6 @@ export function useListDnD({ recordings, selectedListId, onMoveToList }: Params)
     handleDragStart,
     handleDragCancel,
     handleDragEnd,
+    shouldSuppressListSelect,
   };
 }

@@ -241,7 +241,6 @@ export function useRecordingMutations({
       try {
         const existingItem = itemForRecording(allItems, recordingId, { includeDeleted: true });
         const snapshot = snapshotItemState(existingItem);
-        const previousListId = selectedListId;
 
         const updatedItem = await moveRecordingBetweenLists(
           uid,
@@ -251,18 +250,15 @@ export function useRecordingMutations({
           toListId,
         );
         mergeItem(updatedItem);
-        onSelectList(toListId);
 
-        registerItemUndo(`Item moved to ${listLabel(toListId, lists)}`, snapshot, updatedItem, () =>
-          onSelectList(previousListId),
-        );
+        registerItemUndo(`Item moved to ${listLabel(toListId, lists)}`, snapshot, updatedItem);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to move recording");
       } finally {
         setBusyId(null);
       }
     },
-    [allItems, lists, mergeItem, onSelectList, recordings, registerItemUndo, selectedListId, uid],
+    [allItems, lists, mergeItem, recordings, registerItemUndo, selectedListId, uid],
   );
 
   const handleCreateList = useCallback(

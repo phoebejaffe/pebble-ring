@@ -109,6 +109,7 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
     handleDragStart,
     handleDragCancel,
     handleDragEnd,
+    shouldSuppressListSelect,
   } = useListDnD({
     recordings,
     selectedListId,
@@ -146,7 +147,10 @@ export function RecordingsView({ uid, content, onContentChange }: Props) {
             listCounts={listCounts}
             selectedListId={selectedListId}
             dragging={draggingId != null}
-            onSelectList={setSelectedListId}
+            onSelectList={(listId) => {
+              if (shouldSuppressListSelect()) return;
+              setSelectedListId(listId);
+            }}
             onAddList={() => {
               setAddListForRecording(null);
               setAddListOpen(true);
