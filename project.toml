@@ -1,0 +1,37 @@
+name = "pebble-ring"
+description = "Export Pebble Index recordings and lists via Firebase OAuth"
+icon = "⌚"
+category = "tools"
+autostart = "on-demand"
+
+[[process]]
+name = "dev"
+type = "service"
+runtime = "shell"
+cmd = "npm run dev -- --host 127.0.0.1 --port 5175"
+port = 5175
+health = "http://127.0.0.1:5175/"
+
+[[process]]
+name = "build"
+type = "command"
+runtime = "shell"
+cmd = "npm run build"
+
+[[process]]
+name = "test"
+type = "command"
+runtime = "shell"
+cmd = "npm run test:run"
+
+[[process]]
+name = "verify"
+type = "command"
+runtime = "shell"
+cmd = "npm run verify"
+
+[[process]]
+name = "typecheck"
+type = "command"
+runtime = "shell"
+cmd = "npm run typecheck"
