@@ -146,8 +146,13 @@ function notesFirestore(): {
   if (!projectId || !userId || !recoveryPhrase) return null;
 
   const existing = getApps().find((app) => app.name === TARGET_APP_NAME);
+  const sourceApp = getApps().find((app) => app.name === "[DEFAULT]");
   const app =
-    existing ?? initializeApp({ credential: applicationDefault(), projectId }, TARGET_APP_NAME);
+    existing ??
+    initializeApp(
+      { credential: sourceApp?.options.credential ?? applicationDefault(), projectId },
+      TARGET_APP_NAME,
+    );
   return { firestore: getFirestore(app), userId, recoveryPhrase };
 }
 
