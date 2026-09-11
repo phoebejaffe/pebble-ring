@@ -23,14 +23,15 @@ function multipart(fields: Record<string, string>, audio?: Buffer): Buffer {
   return Buffer.concat(chunks);
 }
 
-function request(body: Buffer, authorization = "Bearer test-token") {
-  return Object.assign(Readable.from(body), {
+function request(body: Buffer, authorization = "Bearer test-token", useRawBody = false) {
+  return Object.assign(Readable.from(useRawBody ? [] : [body]), {
     method: "POST",
     headers: {
       "content-type": `multipart/form-data; boundary=${boundary}`,
       "content-length": String(body.length),
       authorization,
     },
+    ...(useRawBody ? { rawBody: body } : {}),
   });
 }
 
@@ -74,6 +75,17 @@ describe("parseMultipartRequest", () => {
       request(multipart({ recordedAt: "1730000000000", client: "ring", transcription: "Hello" })),
     );
     expect(payload.audio).toBeNull();
+    expect(payload.transcription).toBe("Hello");
+  });
+
+  it("parses Firebase's rawBody when the request stream was already consumed", async () => {
+    const payload = await parseMultipartRequest(
+      request(
+        multipart({ recordedAt: "1730000000000", client: "ring", transcription: "Hello" }),
+        "Bearer test-token",
+        true,
+      ),
+    );
     expect(payload.transcription).toBe("Hello");
   });
 });

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { Readable } from "node:stream";
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from "node:http";
 import Busboy from "busboy";
 
@@ -35,6 +36,8 @@ type ParsedMultipart = Omit<WebhookPayload, "recordedAt" | "client"> & {
   recordedAt: string | null;
   client: string | null;
 };
+
+type RequestWithRawBody = IncomingMessage & { rawBody?: Buffer };
 
 function responseJson(res: ServerResponse, status: number, body: Record<string, unknown>): void {
   res.statusCode = status;
@@ -76,7 +79,7 @@ function eventId(payload: WebhookPayload): string {
   return hash.digest("hex").slice(0, 32);
 }
 
-export async function parseMultipartRequest(req: IncomingMessage): Promise<WebhookPayload> {
+export async function parseMultipartRequest(req: RequestWithRawBody): Promise<WebhookPayload> {
   const contentType = requestHeader(req.headers, "content-type");
   if (!contentType?.toLowerCase().startsWith("multipart/form-data")) {
     throw new Error("Content-Type must be multipart/form-data");
@@ -136,8 +139,9 @@ export async function parseMultipartRequest(req: IncomingMessage): Promise<Webho
       resolve();
     });
 
-    req.on("error", fail);
-    req.pipe(busboy);
+    const bodyStream = req.rawBody ? Readable.from([req.rawBody]) : req;
+    bodyStream.on("error", fail);
+    bodyStream.pipe(busboy);
   });
 
   const recordedAt = parseRecordedAt(parsed.recordedAt);
@@ -168,7 +172,7 @@ export function createWebhookHandler(options: {
     typeof options.authToken === "function" ? options.authToken() : options.authToken;
 
   return async function handleWebhookRequest(
-    req: IncomingMessage,
+    req: RequestWithRawBody,
     res: ServerResponse,
   ): Promise<void> {
     if (req.method !== "POST") {
