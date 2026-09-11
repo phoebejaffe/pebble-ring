@@ -99,7 +99,7 @@ firebase functions:secrets:set NOTES_USER_ID
 firebase functions:secrets:set NOTES_RECOVERY_PHRASE
 ```
 
-The receiver uses keyless service-account impersonation. The runtime identity `pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com` impersonates `pebble-notes-sync@notes-363bc.iam.gserviceaccount.com`; no JSON key is needed. For a different receiver project, update the runtime identity in the Functions configuration and grant it `roles/iam.serviceAccountTokenCreator` on the Notes service account.
+The receiver uses keyless Application Default Credentials. The Functions runtime identity `pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com` is granted Firestore access directly in the Notes project; no JSON key is needed. For a different receiver project, grant its runtime identity `roles/datastore.user` in the Notes project.
 
 For the remaining values, use the Notes project's Firebase project ID, the Notes Firebase Auth user's UID, and the exact recovery phrase used to unlock encrypted sync in the Notes app. The Notes project currently uses `notes-363bc`; verify the ID in `~/Sites/notes/.firebaserc` before configuring production.
 
