@@ -1,7 +1,8 @@
 import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from "node:crypto";
-import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { defineSecret, type SecretParam } from "firebase-functions/params";
+import { GoogleAuth, Impersonated } from "google-auth-library";
 
 type EncryptedEnvelope = {
   version: 1;
@@ -22,8 +23,6 @@ type KeyBundle = {
 const TARGET_APP_NAME = "pebble-notes-target";
 const PBKDF2_ITERATIONS = 600_000;
 const notesProjectId = defineSecret("NOTES_FIREBASE_PROJECT_ID");
-const notesClientEmail = defineSecret("NOTES_FIREBASE_CLIENT_EMAIL");
-const notesPrivateKey = defineSecret("NOTES_FIREBASE_PRIVATE_KEY");
 const notesUserId = defineSecret("NOTES_USER_ID");
 const notesRecoveryPhrase = defineSecret("NOTES_RECOVERY_PHRASE");
 
@@ -137,29 +136,50 @@ export function notesDayKey(timestamp: number, timeZone: string, rolloverHour = 
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
-function notesFirestore(): { firestore: Firestore; userId: string; recoveryPhrase: string } | null {
-  const projectId = secretValue(notesProjectId);
-  const clientEmail = secretValue(notesClientEmail);
-  const privateKey = secretValue(notesPrivateKey).replace(/\\n/g, "\n");
-  const userId = secretValue(notesUserId);
-  const recoveryPhrase = secretValue(notesRecoveryPhrase);
-  if (!projectId || !clientEmail || !privateKey || !userId || !recoveryPhrase) return null;
+let notesConnectionPromise:
+  Promise<{ firestore: Firestore; userId: string; recoveryPhrase: string } | null> | undefined;
 
-  const existing = getApps().find((app) => app.name === TARGET_APP_NAME);
-  const app =
-    existing ??
-    initializeApp(
-      { credential: cert({ projectId, clientEmail, privateKey }), projectId },
-      TARGET_APP_NAME,
-    );
-  return { firestore: getFirestore(app), userId, recoveryPhrase };
+async function notesFirestore(): Promise<{
+  firestore: Firestore;
+  userId: string;
+  recoveryPhrase: string;
+} | null> {
+  if (notesConnectionPromise) return notesConnectionPromise;
+  notesConnectionPromise = (async () => {
+    const projectId = secretValue(notesProjectId);
+    const userId = secretValue(notesUserId);
+    const recoveryPhrase = secretValue(notesRecoveryPhrase);
+    if (!projectId || !userId || !recoveryPhrase) return null;
+
+    const sourceClient = await new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    }).getClient();
+    const impersonatedClient = new Impersonated({
+      sourceClient,
+      targetPrincipal: "pebble-notes-sync@notes-363bc.iam.gserviceaccount.com",
+      lifetime: 900,
+      delegates: [],
+      targetScopes: ["https://www.googleapis.com/auth/datastore"],
+    });
+    const credential = {
+      getAccessToken: async () => {
+        const token = await impersonatedClient.getAccessToken();
+        if (!token.token) throw new Error("Could not obtain Notes service-account access token");
+        return { access_token: token.token, expires_in: 900 };
+      },
+    };
+    const existing = getApps().find((app) => app.name === TARGET_APP_NAME);
+    const app = existing ?? initializeApp({ credential, projectId }, TARGET_APP_NAME);
+    return { firestore: getFirestore(app), userId, recoveryPhrase };
+  })();
+  return notesConnectionPromise;
 }
 
 export async function appendToCurrentNote(
   transcription: string,
   recordedAt: number,
 ): Promise<"written" | "not_configured"> {
-  const connection = notesFirestore();
+  const connection = await notesFirestore();
   if (!connection) return "not_configured";
 
   const day = notesDayKey(

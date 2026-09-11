@@ -2,10 +2,10 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { appendToCurrentNote, isNoteTranscription } from "./notesSync.js";
 
+const runtimeServiceAccount =
+  "pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com";
 const notesSecrets = [
   defineSecret("NOTES_FIREBASE_PROJECT_ID"),
-  defineSecret("NOTES_FIREBASE_CLIENT_EMAIL"),
-  defineSecret("NOTES_FIREBASE_PRIVATE_KEY"),
   defineSecret("NOTES_USER_ID"),
   defineSecret("NOTES_RECOVERY_PHRASE"),
 ];
@@ -14,6 +14,7 @@ export const processWebhookEvent = onDocumentCreated(
   {
     document: "webhookEvents/{eventId}",
     region: "us-central1",
+    serviceAccount: runtimeServiceAccount,
     secrets: notesSecrets,
     retry: true,
   },

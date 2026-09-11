@@ -9,6 +9,8 @@ export { processWebhookEvent } from "./actions.js";
 import { createWebhookHandler, type EventStore, type StoredEvent } from "./webhook.js";
 
 const webhookToken = defineSecret("WEBHOOK_AUTH_TOKEN");
+const runtimeServiceAccount =
+  "pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com";
 const app = getApps().length > 0 ? getApps()[0] : initializeApp();
 const firestore = getFirestore(app);
 const bucket = getStorage(app).bucket();
@@ -64,7 +66,12 @@ const store: EventStore = {
 };
 
 export const pebbleWebhook = onRequest(
-  { region: "us-central1", secrets: [webhookToken], maxInstances: 2 },
+  {
+    region: "us-central1",
+    secrets: [webhookToken],
+    maxInstances: 2,
+    serviceAccount: runtimeServiceAccount,
+  },
   createWebhookHandler({
     authHeader: process.env.WEBHOOK_AUTH_HEADER ?? "authorization",
     authToken: () => webhookToken.value(),
@@ -73,11 +80,11 @@ export const pebbleWebhook = onRequest(
 );
 
 export const eventsApi = onRequest(
-  { region: "us-central1", maxInstances: 2 },
+  { region: "us-central1", maxInstances: 2, serviceAccount: runtimeServiceAccount },
   createEventsHandler(dashboard),
 );
 
 export const eventAudioUrl = onRequest(
-  { region: "us-central1", maxInstances: 2 },
+  { region: "us-central1", maxInstances: 2, serviceAccount: runtimeServiceAccount },
   createAudioUrlHandler(dashboard),
 );

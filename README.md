@@ -95,15 +95,15 @@ The Notes app encrypts daily documents in the browser with an AES-GCM key derive
 
 ```bash
 firebase functions:secrets:set NOTES_FIREBASE_PROJECT_ID
-firebase functions:secrets:set NOTES_FIREBASE_CLIENT_EMAIL
-firebase functions:secrets:set NOTES_FIREBASE_PRIVATE_KEY
 firebase functions:secrets:set NOTES_USER_ID
 firebase functions:secrets:set NOTES_RECOVERY_PHRASE
 ```
 
-For the values, use the Notes project's Firebase project ID, the service account's email, its private key with newline escapes preserved, the Notes Firebase Auth user's UID, and the exact recovery phrase used to unlock encrypted sync in the Notes app. The Notes project currently uses `notes-363bc`; verify the ID in `~/Sites/notes/.firebaserc` before configuring production.
+The receiver uses keyless service-account impersonation. The runtime identity `pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com` impersonates `pebble-notes-sync@notes-363bc.iam.gserviceaccount.com`; no JSON key is needed. For a different receiver project, update the runtime identity in the Functions configuration and grant it `roles/iam.serviceAccountTokenCreator` on the Notes service account.
 
-Use a service account from the Notes Firebase project with only the minimum Firestore access needed for that user's paths. The recovery phrase is equivalent to the Notes sync key: never put it in source code, frontend variables, GitHub Actions variables, logs, or chat. The action is skipped when the secrets are absent, and processing status is recorded on the source event. Failed actions are marked failed and retried by the Firestore trigger.
+For the remaining values, use the Notes project's Firebase project ID, the Notes Firebase Auth user's UID, and the exact recovery phrase used to unlock encrypted sync in the Notes app. The Notes project currently uses `notes-363bc`; verify the ID in `~/Sites/notes/.firebaserc` before configuring production.
+
+The recovery phrase is equivalent to the Notes sync key: never put it in source code, frontend variables, GitHub Actions variables, logs, or chat. The action is skipped when the secrets are absent, and processing status is recorded on the source event. Failed actions are marked failed and retried by the Firestore trigger.
 
 Pebble's webhook includes a timestamp but not the phone's timezone. Set the timezone and the same rollover hour used by Notes in the Functions environment, for example:
 
