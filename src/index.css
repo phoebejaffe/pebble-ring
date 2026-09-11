@@ -890,8 +890,41 @@ button:disabled {
   }
 }
 
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: #9ec0ff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.recording-client {
+  margin: 0.35rem 0 0;
+  color: #9a9aa3;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 640px) {
   .word-pref-row {
     grid-template-columns: 1fr;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions button {
+    flex: 1;
   }
 }

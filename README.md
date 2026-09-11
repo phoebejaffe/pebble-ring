@@ -42,13 +42,13 @@ The receiver accepts audio up to 25 MB. It returns `202` only after the event ha
    firebase functions:secrets:set WEBHOOK_AUTH_TOKEN
    ```
 
-6. Deploy the function and locked-down rules:
+6. Deploy the functions and locked-down rules:
 
    ```bash
    firebase deploy --only functions,firestore,storage
    ```
 
-The deployed endpoint is shown by the CLI and has the form:
+The deployed webhook endpoint is shown by the CLI and has the form:
 
 ```text
 https://us-central1-YOUR_PROJECT.cloudfunctions.net/pebbleWebhook
@@ -62,6 +62,19 @@ Authorization: Bearer YOUR_WEBHOOK_TOKEN
 
 The token is never committed to this repository. You may choose another header by setting `WEBHOOK_AUTH_HEADER` in the Functions environment, then configure the same header in Index. For a non-Authorization header, use the raw token value rather than the `Bearer` prefix.
 
+## Recordings dashboard
+
+The project includes a dashboard similar to the former recordings interface. It uses Google sign-in through Firebase Authentication in your new project, lists the latest 100 events, supports transcription search, shows processing status, and loads private audio through short-lived signed URLs.
+
+Enable Google as a sign-in provider in Firebase Authentication, then create a web app in the same Firebase project. Copy its configuration into `.env.local`:
+
+```bash
+cp .env.example .env.local
+npm run dev
+```
+
+Set the `VITE_FIREBASE_*` values and `VITE_API_BASE_URL` to the deployed Functions base URL. The dashboard calls `eventsApi` and `eventAudioUrl`; it does not use the webhook token in the browser. Set `DASHBOARD_ORIGIN` in the Functions environment to the deployed dashboard origin when hosting it separately, such as on GitHub Pages.
+
 ## Stored data
 
 Each accepted event creates `webhookEvents/{eventId}` in Firestore. The document includes:
@@ -73,6 +86,22 @@ Each accepted event creates `webhookEvents/{eventId}` in Firestore. The document
 - a processing object reserved for category, labels, and future automation state
 
 Audio is stored at `recordings/{eventId}.m4a`. Firestore and Storage rules deny direct client access; the Admin SDK used by the Function performs the writes.
+
+## Transcription actions
+
+A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. It currently demonstrates writing transcription events to another Firebase project in a `pebbleInbox` collection.
+
+To enable that destination, create a service account in the target Firebase project with only the required Firestore permissions, then configure its credentials as Firebase Secrets in the receiver project:
+
+```bash
+firebase functions:secrets:set TARGET_FIREBASE_PROJECT_ID
+firebase functions:secrets:set TARGET_FIREBASE_CLIENT_EMAIL
+firebase functions:secrets:set TARGET_FIREBASE_PRIVATE_KEY
+```
+
+The action is skipped when those secrets are not configured, and processing status is recorded on the source event. Failed actions are marked failed and retried by the Firestore trigger. Keep the target service account restricted to the destination collections; never put its private key in frontend environment variables.
+
+The same action boundary can later dispatch category rules, call an external HTTPS service, enqueue Cloud Tasks, or invoke an LLM/classifier before writing to the destination project. For larger workflows, use Pub/Sub or Cloud Tasks so ingestion remains fast and retries are isolated from the webhook request.
 
 ## Local development
 
@@ -86,7 +115,7 @@ npm run functions:test
 npm run dev
 ```
 
-The frontend is only a status page. It contains no Pebble account sign-in and no official-project Firebase configuration.
+The frontend is the authenticated recordings dashboard. It contains no official-project Firebase configuration; all client configuration points at the Firebase project you control.
 
 For local emulator work, create `functions/.env.local` from the example and start Firebase emulators after selecting a Firebase project:
 

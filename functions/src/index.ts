@@ -1,14 +1,22 @@
 import { getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import { createAudioUrlHandler, createEventsHandler } from "./dashboard.js";
+import "./actions.js";
 import { createWebhookHandler, type EventStore, type StoredEvent } from "./webhook.js";
 
 const webhookToken = defineSecret("WEBHOOK_AUTH_TOKEN");
 const app = getApps().length > 0 ? getApps()[0] : initializeApp();
 const firestore = getFirestore(app);
 const bucket = getStorage(app).bucket();
+const dashboard = {
+  auth: getAuth(app),
+  firestore,
+  bucket,
+};
 
 const store: EventStore = {
   async has(id) {
@@ -62,4 +70,14 @@ export const pebbleWebhook = onRequest(
     authToken: () => webhookToken.value(),
     store,
   }),
+);
+
+export const eventsApi = onRequest(
+  { region: "us-central1", maxInstances: 2 },
+  createEventsHandler(dashboard),
+);
+
+export const eventAudioUrl = onRequest(
+  { region: "us-central1", maxInstances: 2 },
+  createAudioUrlHandler(dashboard),
 );
