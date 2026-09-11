@@ -112,6 +112,12 @@ export function formatNoteLine(transcription: string): string {
   return content ? `Note — ${content}` : "";
 }
 
+export function prependNoteLine(line: string, current: string): string {
+  if (!current.trim()) return `${line}\n\n`;
+  const separator = /^\s*Note\b/iu.test(current) ? "\n" : "\n\n";
+  return `${line}${separator}${current}`;
+}
+
 function dateParts(
   timestamp: number,
   timeZone: string,
@@ -186,7 +192,7 @@ export async function appendToCurrentNote(
   const current = noteSnapshot.exists ? decryptMarkdown(noteSnapshot.data() ?? {}, key, day) : "";
   const line = formatNoteLine(transcription);
   if (!line) return "written";
-  const markdown = current ? `${line}\n${current}` : `${line}\n`;
+  const markdown = prependNoteLine(line, current);
   await noteRef.set(encryptMarkdown(markdown, key, day, Date.now()));
   return "written";
 }
