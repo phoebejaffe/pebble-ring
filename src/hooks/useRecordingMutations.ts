@@ -17,8 +17,8 @@ import {
   mergeItemInContent,
   updateRecordingInContent,
 } from "../lib/pebble-content";
-import { updateRecordingTranscription } from "../lib/recordings-api";
-import { applyTranscriptionToRecording } from "../lib/recording-transcription";
+import { updateRecordingUserTranscription } from "../lib/recordings-api";
+import { applyUserTranscriptionToRecording } from "../lib/recording-transcription";
 import type { TranscriptionSettings } from "../lib/transcription-settings";
 import { retranscribeRecording } from "../retranscribe";
 import type { RetranscribeError } from "../retranscribe";
@@ -211,13 +211,12 @@ export function useRecordingMutations({
       setBusyId(recording.id);
       setError(null);
       try {
-        const model = recording.transcribedUsingModel ?? "user-edited";
-        await updateRecordingTranscription(uid, recording.id, recording.raw, transcription, model);
+        await updateRecordingUserTranscription(uid, recording.id, recording.raw, transcription);
         onContentChange(
           updateRecordingInContent(
             contentRef.current,
             recording.id,
-            applyTranscriptionToRecording(recording, transcription, model),
+            applyUserTranscriptionToRecording(recording, transcription),
           ),
         );
       } catch (err) {

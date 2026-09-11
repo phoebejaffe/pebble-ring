@@ -8,6 +8,8 @@ const recording: ParsedRecording = {
   updatedMs: 1_700_000_000_000,
   title: "Test",
   transcription: "Hello",
+  autoTranscription: "Hello",
+  userTranscription: "",
   fileName: "clip.m4a",
   status: "done",
   transcribedUsingModel: null,

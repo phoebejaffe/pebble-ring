@@ -9,6 +9,8 @@ function recording(overrides: Partial<ParsedRecording> = {}): ParsedRecording {
     updatedMs: 0,
     title: "Grocery list",
     transcription: "Buy milk and eggs",
+    autoTranscription: "Buy milk and eggs",
+    userTranscription: "",
     fileName: "audio.m4a",
     status: "done",
     transcribedUsingModel: null,

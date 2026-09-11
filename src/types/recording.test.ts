@@ -26,4 +26,36 @@ describe("parseRecording", () => {
 
     expect(parsed.transcription).toBe("auto text");
   });
+
+  it("exposes the auto and user transcription layers separately", () => {
+    const parsed = parseRecording("rec-1", {
+      timestamp: 1_700_000_000_000,
+      updated: 1_700_000_000_000,
+      entries: [{ timestamp: 1_700_000_000_000, transcription: "auto text", status: "done" }],
+      assistant_session: {
+        title: null,
+        messages: [{ role: "user", content: "corrected text" }],
+      },
+    });
+
+    expect(parsed.autoTranscription).toBe("auto text");
+    expect(parsed.userTranscription).toBe("corrected text");
+    expect(parsed.transcription).toBe("corrected text");
+  });
+
+  it("reveals the auto transcription when the user override is empty", () => {
+    const parsed = parseRecording("rec-1", {
+      timestamp: 1_700_000_000_000,
+      updated: 1_700_000_000_000,
+      entries: [{ timestamp: 1_700_000_000_000, transcription: "auto text", status: "done" }],
+      assistant_session: {
+        title: null,
+        messages: [{ role: "user", content: "" }],
+      },
+    });
+
+    expect(parsed.autoTranscription).toBe("auto text");
+    expect(parsed.userTranscription).toBe("");
+    expect(parsed.transcription).toBe("auto text");
+  });
 });

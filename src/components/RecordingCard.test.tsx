@@ -17,6 +17,8 @@ const recording: ParsedRecording = {
   updatedMs: 1_700_000_000_000,
   title: "Test recording",
   transcription: "Hello from Pebble",
+  autoTranscription: "Hello from Pebble",
+  userTranscription: "",
   fileName: "clip.m4a",
   status: "completed",
   transcribedUsingModel: "universal-2",

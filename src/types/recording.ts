@@ -40,6 +40,8 @@ export type ParsedRecording = {
   updatedMs: number;
   title: string;
   transcription: string;
+  autoTranscription: string;
+  userTranscription: string;
   fileName: string | null;
   status: string;
   transcribedUsingModel: string | null;
@@ -50,15 +52,13 @@ export function parseRecording(id: string, data: Record<string, unknown>): Parse
   const doc = data as unknown as RecordingDoc;
   const firstEntry = doc.entries?.[0];
   const userMessage = doc.assistant_session?.messages?.find((m) => m.role === "user");
-  const entryTranscription = firstEntry?.transcription?.trim() ?? "";
+  const autoTranscription = firstEntry?.transcription?.trim() ?? "";
+  const userTranscription = userMessage?.content?.trim() ?? "";
 
-  const transcription = userMessage?.content?.trim() || entryTranscription || "";
+  const transcription = userTranscription || autoTranscription || "";
 
   const title =
-    doc.assistant_session?.title?.trim() ||
-    userMessage?.content?.trim() ||
-    transcription ||
-    "Recording";
+    doc.assistant_session?.title?.trim() || userTranscription || transcription || "Recording";
 
   const recordingTs = firestoreToMs(doc.timestamp);
   const entryTs = firstEntry ? firestoreToMs(firstEntry.timestamp) : 0;
@@ -71,6 +71,8 @@ export function parseRecording(id: string, data: Record<string, unknown>): Parse
     updatedMs,
     title,
     transcription,
+    autoTranscription,
+    userTranscription,
     fileName: firstEntry?.fileName ?? null,
     status: firstEntry?.status ?? "unknown",
     transcribedUsingModel: firstEntry?.transcribedUsingModel ?? null,

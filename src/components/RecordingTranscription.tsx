@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 type Props = {
   transcription: string;
+  autoTranscription?: string;
   busy: boolean;
   onSave: (transcription: string) => void;
 };
@@ -10,7 +11,12 @@ function readEditorText(element: HTMLDivElement | null): string {
   return element?.textContent?.replace(/\u00a0/g, " ").trim() ?? "";
 }
 
-export function RecordingTranscription({ transcription, busy, onSave }: Props) {
+export function RecordingTranscription({
+  transcription,
+  autoTranscription = "",
+  busy,
+  onSave,
+}: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const committedRef = useRef(transcription);
 
@@ -20,6 +26,9 @@ export function RecordingTranscription({ transcription, busy, onSave }: Props) {
     if (!editor || document.activeElement === editor) return;
     editor.textContent = transcription;
   }, [transcription]);
+
+  const auto = autoTranscription.trim();
+  const hasUserEdit = auto.length > 0 && transcription.trim() !== auto;
 
   function revertToCommitted() {
     const editor = editorRef.current;
@@ -33,6 +42,12 @@ export function RecordingTranscription({ transcription, busy, onSave }: Props) {
 
     const next = readEditorText(editor);
     if (!next) {
+      const editedOverAuto = auto.length > 0 && committedRef.current.trim() !== auto;
+      if (editedOverAuto) {
+        editor.textContent = auto;
+        onSave("");
+        return;
+      }
       revertToCommitted();
       return;
     }
@@ -54,7 +69,13 @@ export function RecordingTranscription({ transcription, busy, onSave }: Props) {
       aria-label="Transcription"
       aria-multiline="true"
       data-placeholder="No transcription"
-      title={busy ? undefined : "Click to edit transcription"}
+      title={
+        busy
+          ? undefined
+          : hasUserEdit
+            ? "Click to edit — clear the text to restore the auto transcription"
+            : "Click to edit transcription"
+      }
       onBlur={() => commitEditing()}
       onKeyDown={(event) => {
         if (event.key === "Escape") {

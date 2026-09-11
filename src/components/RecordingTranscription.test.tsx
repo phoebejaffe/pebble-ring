@@ -35,4 +35,43 @@ describe("RecordingTranscription", () => {
 
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  it("erases the user edit when cleared, revealing the auto transcription", async () => {
+    const onSave = vi.fn();
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <RecordingTranscription
+        transcription="My correction"
+        autoTranscription="Auto transcription"
+        busy={false}
+        onSave={onSave}
+      />,
+    );
+
+    const editor = screen.getByRole("textbox", { name: "Transcription" });
+    await user.click(editor);
+    await user.clear(editor);
+    await user.tab();
+
+    expect(onSave).toHaveBeenCalledWith("");
+    expect(editor).toHaveTextContent("Auto transcription");
+  });
+
+  it("reverts instead of erasing when there is no auto transcription to reveal", async () => {
+    const onSave = vi.fn();
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <RecordingTranscription transcription="Only text" busy={false} onSave={onSave} />,
+    );
+
+    const editor = screen.getByRole("textbox", { name: "Transcription" });
+    await user.click(editor);
+    await user.clear(editor);
+    await user.tab();
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(editor).toHaveTextContent("Only text");
+  });
 });

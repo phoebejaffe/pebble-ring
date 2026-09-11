@@ -47,6 +47,8 @@ export function RecordingCard({
   const listPickerRef = useRef<HTMLDivElement>(null);
   const cardMenuRef = useRef<HTMLDivElement>(null);
 
+  const hasTranscription = recording.transcription.trim().length > 0;
+
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: recording.id,
     data: { type: "recording", recordingId: recording.id },
@@ -113,7 +115,7 @@ export function RecordingCard({
                 </button>
                 {cardMenuOpen && (
                   <div className="tag-menu card-menu" role="menu">
-                    {recording.transcribedUsingModel && (
+                    {recording.fileName && (
                       <button
                         type="button"
                         role="menuitem"
@@ -124,8 +126,11 @@ export function RecordingCard({
                           onRetranscribe();
                         }}
                       >
-                        Audio transcribed with {recording.transcribedUsingModel} — Retranscribe with
-                        universal-2
+                        {!hasTranscription
+                          ? "Transcribe with universal-2"
+                          : recording.transcribedUsingModel
+                            ? `Audio transcribed with ${recording.transcribedUsingModel} — Retranscribe with universal-2`
+                            : "Retranscribe with universal-2"}
                       </button>
                     )}
                     <button
@@ -209,6 +214,7 @@ export function RecordingCard({
         </div>
         <RecordingTranscription
           transcription={recording.transcription}
+          autoTranscription={recording.autoTranscription}
           busy={busy}
           onSave={onUpdateTranscription}
         />
