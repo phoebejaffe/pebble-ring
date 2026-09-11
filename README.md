@@ -89,19 +89,30 @@ Audio is stored at `recordings/{eventId}.m4a`. Firestore and Storage rules deny 
 
 ## Transcription actions
 
-A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. It currently demonstrates writing transcription events to another Firebase project in a `pebbleInbox` collection.
+A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. It matches transcriptions that begin with `Note` (case-insensitive), removes the command prefix, and writes a normalized line such as `Note — call the dentist` at the top of the corresponding daily note in `~/Sites/notes`.
 
-To enable that destination, create a service account in the target Firebase project with only the required Firestore permissions, then configure its credentials as Firebase Secrets in the receiver project:
+The Notes app encrypts daily documents in the browser with an AES-GCM key derived from its recovery phrase. The backend therefore needs the Notes Firebase project credentials, the Notes user ID, and the recovery phrase so it can decrypt the existing daily document and re-encrypt it in the exact same format. Configure these as Firebase Secrets in the receiver project:
 
 ```bash
-firebase functions:secrets:set TARGET_FIREBASE_PROJECT_ID
-firebase functions:secrets:set TARGET_FIREBASE_CLIENT_EMAIL
-firebase functions:secrets:set TARGET_FIREBASE_PRIVATE_KEY
+firebase functions:secrets:set NOTES_FIREBASE_PROJECT_ID
+firebase functions:secrets:set NOTES_FIREBASE_CLIENT_EMAIL
+firebase functions:secrets:set NOTES_FIREBASE_PRIVATE_KEY
+firebase functions:secrets:set NOTES_USER_ID
+firebase functions:secrets:set NOTES_RECOVERY_PHRASE
 ```
 
-The action is skipped when those secrets are not configured, and processing status is recorded on the source event. Failed actions are marked failed and retried by the Firestore trigger. Keep the target service account restricted to the destination collections; never put its private key in frontend environment variables.
+For the values, use the Notes project's Firebase project ID, the service account's email, its private key with newline escapes preserved, the Notes Firebase Auth user's UID, and the exact recovery phrase used to unlock encrypted sync in the Notes app. The Notes project currently uses `notes-363bc`; verify the ID in `~/Sites/notes/.firebaserc` before configuring production.
 
-The same action boundary can later dispatch category rules, call an external HTTPS service, enqueue Cloud Tasks, or invoke an LLM/classifier before writing to the destination project. For larger workflows, use Pub/Sub or Cloud Tasks so ingestion remains fast and retries are isolated from the webhook request.
+Use a service account from the Notes Firebase project with only the minimum Firestore access needed for that user's paths. The recovery phrase is equivalent to the Notes sync key: never put it in source code, frontend variables, GitHub Actions variables, logs, or chat. The action is skipped when the secrets are absent, and processing status is recorded on the source event. Failed actions are marked failed and retried by the Firestore trigger.
+
+Pebble's webhook includes a timestamp but not the phone's timezone. Set the timezone and the same rollover hour used by Notes in the Functions environment, for example:
+
+```text
+NOTES_TIME_ZONE=America/Los_Angeles
+NOTES_ROLLOVER_HOUR=4
+```
+
+Put these in the ignored `functions/.env` file before deployment, or configure equivalent Functions environment values. Because Pebble does not send timezone metadata, this setting must match the timezone used by the Notes device. The timestamp is assigned to the previous logical day when it occurs before the rollover hour. The same action boundary can later dispatch category rules, call an external HTTPS service, enqueue Cloud Tasks, or invoke an LLM/classifier.
 
 ## Local development
 
@@ -143,4 +154,5 @@ npm run verify          # repository formatting, lint, tests, and build
 - Do not log request bodies, audio, transcriptions, or authorization values.
 - Pebble currently does not guarantee retries after a failed webhook request, so the receiver persists before returning success and deduplicates equivalent deliveries.
 - Set Storage retention and Firestore retention according to your privacy and cost requirements.
+- The Notes recovery phrase is placed in Firebase Secret Manager so the backend can perform compatible encryption; anyone who can access that secret can decrypt and modify the configured user's notes.
 - Categorization is intentionally a later processing step; the initial ingestion document leaves room for labels, categories, and automation results.
