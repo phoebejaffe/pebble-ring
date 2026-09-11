@@ -201,6 +201,7 @@ export function createWebhookHandler(options: {
       responseJson(res, 202, { accepted: true, duplicate: false, id });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid webhook request";
+      console.error("Webhook request failed", { message });
       const status = message.includes("exceeds") || message.includes("too large") ? 413 : 400;
       responseJson(res, status, { error: message });
     }
