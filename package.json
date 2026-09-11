@@ -5,20 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && npm run functions:build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run",
+    "test:run": "vitest run && npm run functions:test",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "functions:build": "npm --prefix functions run build",
+    "functions:test": "npm --prefix functions test",
     "verify": "bash scripts/verify.sh"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "assemblyai": "^4.14.0",
-    "firebase": "^11.10.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

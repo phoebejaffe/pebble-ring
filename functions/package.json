@@ -1,0 +1,25 @@
+{
+  "name": "pebble-ring-functions",
+  "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "dependencies": {
+    "busboy": "^1.6.0",
+    "firebase-admin": "^14.4.0",
+    "firebase-functions": "^7.3.2"
+  },
+  "devDependencies": {
+    "@types/busboy": "^1.5.4",
+    "@types/node": "^22.20.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

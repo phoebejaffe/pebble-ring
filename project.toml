@@ -1,5 +1,5 @@
 name = "pebble-ring"
-description = "Export Pebble Index recordings and lists via Firebase OAuth"
+description = "Receive Pebble Index recordings and transcriptions via a private webhook"
 icon = "⌚"
 category = "tools"
 autostart = "on-demand"
