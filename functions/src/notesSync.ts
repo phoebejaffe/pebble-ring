@@ -100,21 +100,14 @@ function encryptMarkdown(markdown: string, key: Buffer, day: string, updatedAt: 
   };
 }
 
-export function isNoteTranscription(transcription: string): boolean {
-  return /^note\b/iu.test(transcription.trim());
-}
-
-export function formatNoteLine(transcription: string): string {
-  const content = transcription
-    .trim()
-    .replace(/^note\b\s*[:,-]?\s*/iu, "")
-    .trim();
-  return content ? `Note — ${content}` : "";
+export function formatTranscriptionLine(transcription: string): string {
+  const content = transcription.trim();
+  return content ? `💡 ${content}` : "";
 }
 
 export function prependNoteLine(line: string, current: string): string {
   if (!current.trim()) return `${line}\n\n`;
-  const separator = /^\s*Note\b/iu.test(current) ? "\n" : "\n\n";
+  const separator = /^\s*💡/u.test(current) ? "\n" : "\n\n";
   return `${line}${separator}${current}`;
 }
 
@@ -190,7 +183,7 @@ export async function appendToCurrentNote(
     .doc(day);
   const noteSnapshot = await noteRef.get();
   const current = noteSnapshot.exists ? decryptMarkdown(noteSnapshot.data() ?? {}, key, day) : "";
-  const line = formatNoteLine(transcription);
+  const line = formatTranscriptionLine(transcription);
   if (!line) return "written";
   const markdown = prependNoteLine(line, current);
   await noteRef.set(encryptMarkdown(markdown, key, day, Date.now()));

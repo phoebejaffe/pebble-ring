@@ -1,31 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { formatNoteLine, isNoteTranscription, notesDayKey, prependNoteLine } from "./notesSync.js";
+import { formatTranscriptionLine, notesDayKey, prependNoteLine } from "./notesSync.js";
 
-describe("note transcription matching", () => {
-  it("recognizes Note as a case-insensitive command and normalizes the line", () => {
-    expect(isNoteTranscription("  note: call the dentist")).toBe(true);
-    expect(formatNoteLine("  note: call the dentist")).toBe("Note — call the dentist");
+describe("transcription lines", () => {
+  it("prefixes every transcription with a bulb", () => {
+    expect(formatTranscriptionLine("  call the dentist")).toBe("💡 call the dentist");
+    expect(formatTranscriptionLine("Note: buy milk")).toBe("💡 Note: buy milk");
   });
 
-  it("does not match words that merely contain note", () => {
-    expect(isNoteTranscription("annotate this later")).toBe(false);
-    expect(formatNoteLine("Note")).toBe("");
+  it("returns an empty line for blank transcriptions", () => {
+    expect(formatTranscriptionLine("   ")).toBe("");
   });
 
-  it("separates a Note line from regular content", () => {
-    expect(prependNoteLine("Note — new content", "old content")).toBe(
-      "Note — new content\n\nold content",
+  it("separates a transcription line from regular content", () => {
+    expect(prependNoteLine("💡 new content", "old content")).toBe("💡 new content\n\nold content");
+  });
+
+  it("keeps consecutive transcription lines together", () => {
+    expect(prependNoteLine("💡 new content", "💡 old content\n\nold content")).toBe(
+      "💡 new content\n💡 old content\n\nold content",
     );
   });
 
-  it("keeps consecutive Note lines together", () => {
-    expect(prependNoteLine("Note — new content", "Note — old content\n\nold content")).toBe(
-      "Note — new content\nNote — old content\n\nold content",
-    );
-  });
-
-  it("leaves a blank line after a Note-only document", () => {
-    expect(prependNoteLine("Note — new content", "")).toBe("Note — new content\n\n");
+  it("leaves a blank line after a transcription-only document", () => {
+    expect(prependNoteLine("💡 new content", "")).toBe("💡 new content\n\n");
   });
 });
 

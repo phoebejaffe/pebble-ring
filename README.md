@@ -89,7 +89,7 @@ Audio is stored at `recordings/{eventId}.m4a`. Firestore and Storage rules deny 
 
 ## Transcription actions
 
-A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. It matches transcriptions that begin with `Note` (case-insensitive), removes the command prefix, and writes a normalized line such as `Note — call the dentist` at the top of the corresponding daily note in `~/Sites/notes`.
+A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. Every non-empty transcription is written as a `💡`-prefixed line at the top of the corresponding daily note in `~/Sites/notes` — for example, `💡 call the dentist`. Consecutive transcription lines are stacked together; a blank line separates them from regular content.
 
 The Notes app encrypts daily documents in the browser with an AES-GCM key derived from its recovery phrase. The backend therefore needs the Notes Firebase project credentials, the Notes user ID, and the recovery phrase so it can decrypt the existing daily document and re-encrypt it in the exact same format. Configure these as Firebase Secrets in the receiver project:
 

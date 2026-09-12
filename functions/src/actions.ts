@@ -1,6 +1,6 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
-import { appendToCurrentNote, isNoteTranscription } from "./notesSync.js";
+import { appendToCurrentNote } from "./notesSync.js";
 
 const runtimeServiceAccount =
   "pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com";
@@ -30,14 +30,6 @@ export const processWebhookEvent = onDocumentCreated(
       });
       return;
     }
-    if (!isNoteTranscription(transcription)) {
-      await source.ref.update({
-        "processing.status": "skipped",
-        "processing.reason": "not_a_note",
-      });
-      return;
-    }
-
     await source.ref.update({ "processing.status": "running", "processing.startedAt": new Date() });
     try {
       const recordedAtValue = source.get("recordedAt");
