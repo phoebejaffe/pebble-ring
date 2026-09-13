@@ -100,14 +100,16 @@ function encryptMarkdown(markdown: string, key: Buffer, day: string, updatedAt: 
   };
 }
 
-export function formatTranscriptionLine(transcription: string): string {
+export function formatTranscriptionLine(transcription: string, linkUrl?: string | null): string {
   const content = transcription.trim();
-  return content ? `💡 ${content}` : "";
+  if (!content) return "";
+  const bulb = linkUrl ? `[💡](${linkUrl})` : "💡";
+  return `${bulb} ${content}`;
 }
 
 export function prependNoteLine(line: string, current: string): string {
   if (!current.trim()) return `${line}\n\n`;
-  const separator = /^\s*💡/u.test(current) ? "\n" : "\n\n";
+  const separator = /^\s*\[?💡/u.test(current) ? "\n" : "\n\n";
   return `${line}${separator}${current}`;
 }
 
@@ -158,6 +160,7 @@ function notesFirestore(): {
 export async function appendToCurrentNote(
   transcription: string,
   recordedAt: number,
+  linkUrl?: string | null,
 ): Promise<"written" | "not_configured"> {
   const connection = notesFirestore();
   if (!connection) return "not_configured";
@@ -183,7 +186,7 @@ export async function appendToCurrentNote(
     .doc(day);
   const noteSnapshot = await noteRef.get();
   const current = noteSnapshot.exists ? decryptMarkdown(noteSnapshot.data() ?? {}, key, day) : "";
-  const line = formatTranscriptionLine(transcription);
+  const line = formatTranscriptionLine(transcription, linkUrl);
   if (!line) return "written";
   const markdown = prependNoteLine(line, current);
   await noteRef.set(encryptMarkdown(markdown, key, day, Date.now()));

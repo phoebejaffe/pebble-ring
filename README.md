@@ -91,6 +91,20 @@ Audio is stored at `recordings/{eventId}.m4a`. Firestore and Storage rules deny 
 
 A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. Every non-empty transcription is written as a `💡`-prefixed line at the top of the corresponding daily note in `~/Sites/notes` — for example, `💡 call the dentist`. Consecutive transcription lines are stacked together; a blank line separates them from regular content.
 
+When the event includes audio, the bulb becomes a Markdown link to the recording:
+
+```md
+[💡](https://us-central1-PROJECT_ID.cloudfunctions.net/recordingAudio?id=…&t=…) call the dentist
+```
+
+The `recordingAudio` endpoint verifies an HMAC token (`t`) signed with the `LINK_SIGNING_SECRET` secret, then redirects to a freshly minted 15-minute Storage URL. The note links therefore never expire — each click re-signs on demand — and rotating the secret revokes every outstanding link. Configure it once:
+
+```bash
+firebase functions:secrets:set LINK_SIGNING_SECRET
+```
+
+Generate a suitable value with `python3 -c 'import secrets; print(secrets.token_urlsafe(32))'`. Events without audio get a plain `💡` line. To serve links through a custom domain or different region, set `RECORDING_LINK_BASE_URL` in the Functions environment.
+
 The Notes app encrypts daily documents in the browser with an AES-GCM key derived from its recovery phrase. The backend therefore needs the Notes Firebase project credentials, the Notes user ID, and the recovery phrase so it can decrypt the existing daily document and re-encrypt it in the exact same format. Configure these as Firebase Secrets in the receiver project:
 
 ```bash

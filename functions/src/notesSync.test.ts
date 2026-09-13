@@ -11,6 +11,12 @@ describe("transcription lines", () => {
     expect(formatTranscriptionLine("   ")).toBe("");
   });
 
+  it("links the bulb to the recording when a link URL is provided", () => {
+    expect(formatTranscriptionLine("call the dentist", "https://example.com/r?id=1")).toBe(
+      "[💡](https://example.com/r?id=1) call the dentist",
+    );
+  });
+
   it("separates a transcription line from regular content", () => {
     expect(prependNoteLine("💡 new content", "old content")).toBe("💡 new content\n\nold content");
   });
@@ -19,6 +25,12 @@ describe("transcription lines", () => {
     expect(prependNoteLine("💡 new content", "💡 old content\n\nold content")).toBe(
       "💡 new content\n💡 old content\n\nold content",
     );
+  });
+
+  it("keeps consecutive linked transcription lines together", () => {
+    expect(
+      prependNoteLine("[💡](https://example.com/2) new", "[💡](https://example.com/1) old\n\nrest"),
+    ).toBe("[💡](https://example.com/2) new\n[💡](https://example.com/1) old\n\nrest");
   });
 
   it("leaves a blank line after a transcription-only document", () => {

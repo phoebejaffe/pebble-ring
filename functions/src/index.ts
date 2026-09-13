@@ -5,6 +5,7 @@ import { getStorage } from "firebase-admin/storage";
 import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { createAudioUrlHandler, createEventsHandler } from "./dashboard.js";
+import { createRecordingAudioHandler, linkSigningSecret } from "./recordingLink.js";
 export { processWebhookEvent } from "./actions.js";
 import { createWebhookHandler, type EventStore, type StoredEvent } from "./webhook.js";
 
@@ -87,4 +88,14 @@ export const eventsApi = onRequest(
 export const eventAudioUrl = onRequest(
   { region: "us-central1", maxInstances: 2, serviceAccount: runtimeServiceAccount },
   createAudioUrlHandler(dashboard),
+);
+
+export const recordingAudio = onRequest(
+  {
+    region: "us-central1",
+    secrets: [linkSigningSecret],
+    maxInstances: 2,
+    serviceAccount: runtimeServiceAccount,
+  },
+  createRecordingAudioHandler({ firestore, bucket }),
 );

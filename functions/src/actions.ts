@@ -1,6 +1,7 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { appendToCurrentNote } from "./notesSync.js";
+import { linkSigningSecret, recordingLinkUrl } from "./recordingLink.js";
 
 const runtimeServiceAccount =
   "pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com";
@@ -8,6 +9,7 @@ const notesSecrets = [
   defineSecret("NOTES_FIREBASE_PROJECT_ID"),
   defineSecret("NOTES_USER_ID"),
   defineSecret("NOTES_RECOVERY_PHRASE"),
+  linkSigningSecret,
 ];
 
 export const processWebhookEvent = onDocumentCreated(
@@ -42,7 +44,10 @@ export const processWebhookEvent = onDocumentCreated(
       if (!Number.isFinite(recordedAt) || recordedAt <= 0) {
         throw new Error("Webhook event has an invalid recordedAt timestamp");
       }
-      const result = await appendToCurrentNote(transcription, recordedAt);
+      const audio = source.get("audio");
+      const linkUrl =
+        audio && typeof audio.path === "string" ? recordingLinkUrl(event.params.eventId) : null;
+      const result = await appendToCurrentNote(transcription, recordedAt, linkUrl);
       if (result === "not_configured") {
         await source.ref.update({
           "processing.status": "skipped",
