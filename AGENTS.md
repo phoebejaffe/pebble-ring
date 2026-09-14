@@ -1,0 +1,47 @@
+# AGENTS.md
+
+Webhook receiver for Pebble Index O/Index 01 rings. Ingests `multipart/form-data` recordings + transcriptions into a user-owned Firebase project, serves an authenticated recordings dashboard, and appends every transcription as an encrypted `💡` line to the user's daily note in the separate `~/Sites/notes` app.
+
+## Commits and verification
+
+- **Run `npm run verify` before every commit** (also enforced by `.cursor/rules/pre-commit-verify.mdc`): Prettier on changed files, ESLint, frontend + functions tests, both builds. If Prettier modifies files, re-stage them.
+- Active work happens on `pebble-ring-webhook`. `pebble-ring-current-state` preserves the old viewer that read Pebble's official Firebase project — do not change it. `main` is the earlier baseline.
+- The official Pebble project (`coreapp-ce061`) must not appear in code, config, or docs. All reads/writes go to the user-owned project.
+
+## Deployed infrastructure
+
+Firebase project: `pebble-ring-sync-20260911` (region `us-central1`). Runtime service account: `pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com` (set via `serviceAccount:` on every function in `functions/src/index.ts` / `actions.ts`).
+
+| Function                      | Purpose                                                                                                                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pebbleWebhook`               | HTTPS ingestion. `Authorization: Bearer $WEBHOOK_AUTH_TOKEN`, ≤25 MB audio → `recordings/{eventId}.m4a`, event doc `webhookEvents/{eventId}`, returns 202. Event ID = content hash → duplicates are acknowledged. |
+| `processWebhookEvent`         | Firestore `onDocumentCreated` trigger (`retry: true`). Skips empty transcriptions; otherwise prepends `💡` (or `[💡](recordingAudio link)` when audio exists) to the day's note via `notesSync.ts`.               |
+| `eventsApi` / `eventAudioUrl` | Dashboard APIs — Firebase Auth ID-token required; returns latest 100 events / 15-min signed audio URL.                                                                                                            |
+| `recordingAudio`              | Stable `GET ?id=<eventId>&t=<hmac>` redirect endpoint. Verifies `LINK_SIGNING_SECRET` HMAC, mints a fresh signed URL, 302s. Links in notes never expire; rotating the secret revokes them.                        |
+
+Deploy: `firebase deploy --only functions,firestore,storage --project pebble-ring-sync-20260911`. Use `--force` when redeploying `processWebhookEvent` non-interactively (retry confirmation).
+
+## Secrets and environment
+
+Firebase Secret Manager (never commit, never log): `WEBHOOK_AUTH_TOKEN`, `NOTES_FIREBASE_PROJECT_ID` (= `notes-363bc`), `NOTES_USER_ID`, `NOTES_RECOVERY_PHRASE`, `LINK_SIGNING_SECRET`.
+
+Ignored `functions/.env` (non-secret config): `NOTES_TIME_ZONE=America/Los_Angeles`, `NOTES_ROLLOVER_HOUR=4`, optional `RECORDING_LINK_BASE_URL` override, `WEBHOOK_AUTH_HEADER`. **A value may not exist in both `.env` and Secret Manager** — deploy fails with "secret environment variable overlaps". Secrets belong only in Secret Manager.
+
+## IAM pitfalls (all burned before — check these first on permission errors)
+
+The custom runtime SA needs, in the _receiver_ project: `roles/datastore.user`, Storage object access, `roles/eventarc.eventReceiver` (Firestore trigger delivery), and **`roles/iam.serviceAccountTokenCreator` on itself** — `getSignedUrl`/`signBlob` fails with `SigningError` / `iam.serviceAccounts.signBlob denied` without it. The Eventarc **service agent** (`service-PROJECT_NUMBER@gcp-sa-eventarc.iam.gserviceaccount.com`) needs `roles/run.invoker` or trigger deliveries fail with `run.routes.invoke` denials. In the _Notes_ project the runtime SA has `roles/datastore.user` — used via Application Default Credentials on a named Firebase app (`notesSync.ts`); org policy `constraints/iam.disableServiceAccountKeyCreation` forbids JSON keys, so never try to create one.
+
+## Webhook parsing gotcha
+
+Firebase Functions consumes the request stream and exposes the body via `req.rawBody` — `parseMultipartRequest` in `functions/src/webhook.ts` must read `rawBody` when present or deployed requests fail with "Unexpected end of form" while local streaming tests still pass.
+
+## Notes integration contract (`functions/src/notesSync.ts`)
+
+- Writes to `users/{NOTES_USER_ID}/documents/{day}` in project `notes-363bc`, matching the Notes app's exact format: `{ markdown, updatedAt }` JSON → AES-256-GCM → `payload` envelope with `associatedData: notes:daily-document:{day}`. Data key recovered from `metadata/keyBundle` via PBKDF2-SHA-256, 600k iterations, normalized recovery phrase. The PBKDF2 result is cached per key-bundle salt.
+- Day key comes from `recordedAt` (not receipt time) in `NOTES_TIME_ZONE`; before `NOTES_ROLLOVER_HOUR` counts as the previous day.
+- Insertion: `formatTranscriptionLine` → `💡 text` or `[💡](link) text`; `prependNoteLine` stacks consecutive `💡`/`[💡]` lines with `\n`, separates from other content with `\n\n`.
+- Org policy + encryption mean **transcription plaintext, note plaintext, recovery phrase, tokens, and auth headers must never be logged**. Processing status (`received/running/completed/failed/skipped` + reason) goes on the source event doc — safe error messages only.
+
+## Cross-repo relationship
+
+`~/Sites/notes` (branch `feature/mdx-editor-migration`) owns the encryption format and its own `AGENTS.md`/`SPEC.md` — if you change the document format there, this repo's `notesSync.ts` must match. The Notes editor renders `[💡](…)` links with an inline audio popover, so `recordingAudio` redirects must keep working for the popover to play.
