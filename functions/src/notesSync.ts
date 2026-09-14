@@ -82,6 +82,15 @@ function recoverDataKey(recoveryPhrase: string, bundle: KeyBundle): Buffer {
   return decryptEnvelope(bundle.wrappedDataKey, wrappingKey);
 }
 
+let dataKeyCache: { salt: string; key: Buffer } | null = null;
+
+function dataKeyForBundle(recoveryPhrase: string, bundle: KeyBundle): Buffer {
+  if (dataKeyCache?.salt === bundle.salt) return dataKeyCache.key;
+  const key = recoverDataKey(recoveryPhrase, bundle);
+  dataKeyCache = { salt: bundle.salt, key };
+  return key;
+}
+
 function decryptMarkdown(value: Record<string, unknown>, key: Buffer, day: string): string {
   const payload = value.payload as EncryptedEnvelope;
   const plaintext = decryptEnvelope(payload, key);
@@ -178,7 +187,7 @@ export async function appendToCurrentNote(
     .get();
   if (!keyBundleSnapshot.exists) throw new Error("Notes encryption key bundle was not found");
 
-  const key = recoverDataKey(connection.recoveryPhrase, keyBundleSnapshot.data() as KeyBundle);
+  const key = dataKeyForBundle(connection.recoveryPhrase, keyBundleSnapshot.data() as KeyBundle);
   const noteRef = connection.firestore
     .collection("users")
     .doc(connection.userId)
