@@ -100,7 +100,7 @@ export const processWebhookEvent = onDocumentCreated(
           "processing.taskClassification": classification
             ? {
                 provider: "assemblyai",
-                model: "gemini-2.5-flash-lite",
+                model: "qwen3.5-4b-32k-fast",
                 isTask,
                 confidence: classification.confidence,
               }

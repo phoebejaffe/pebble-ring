@@ -121,7 +121,7 @@ Paste the AssemblyAI key when prompted. Do not put it in `.env`, source control,
 firebase deploy --only functions:processWebhookEvent --force --project pebble-ring-sync-20260911
 ```
 
-The function generates a one-hour private Storage URL for AssemblyAI. The URL is not stored in Firestore. The event keeps both the original `transcription` and the improved `retranscription` result. Every non-empty transcription is also classified through AssemblyAI LLM Gateway using `gemini-2.5-flash-lite`. A high-confidence task is written to Notes as `- [ ] [💡](recording-link) transcription`; uncertain, non-task, unavailable, or failed classifications remain normal linked `💡` lines. Existing events are not automatically reprocessed; send a new recording to test.
+The function generates a one-hour private Storage URL for AssemblyAI. The URL is not stored in Firestore. The event keeps both the original `transcription` and the improved `retranscription` result. Every non-empty transcription is also classified through AssemblyAI LLM Gateway using `qwen3.5-4b-32k-fast`. A high-confidence task is written to Notes as `- [ ] [💡](recording-link) transcription`; uncertain, non-task, unavailable, or failed classifications remain normal linked `💡` lines. Existing events are not automatically reprocessed; send a new recording to test.
 
 The Notes app encrypts daily documents in the browser with an AES-GCM key derived from its recovery phrase. The backend therefore needs the Notes Firebase project credentials, the Notes user ID, and the recovery phrase so it can decrypt the existing daily document and re-encrypt it in the exact same format. Configure these as Firebase Secrets in the receiver project:
 

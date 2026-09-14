@@ -1,6 +1,6 @@
 import { assemblyAiApiKey } from "./retranscribe.js";
 
-const CLASSIFIER_MODEL = "gemini-2.5-flash-lite";
+const CLASSIFIER_MODEL = "qwen3.5-4b-32k-fast";
 const CLASSIFIER_URL = "https://llm-gateway.assemblyai.com/v1/chat/completions";
 
 export type TaskClassification = {

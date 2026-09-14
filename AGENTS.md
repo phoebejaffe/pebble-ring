@@ -44,7 +44,7 @@ Firebase Functions consumes the request stream and exposes the body via `req.raw
 
 ## AssemblyAI retranscription
 
-`functions/src/retranscribe.ts` uses the official `assemblyai` Node SDK (`universal-2`). It generates a one-hour signed Storage URL for private audio, sends that URL to AssemblyAI, stores the result in `retranscription.assemblyai.text`, and falls back to the original Pebble transcript if the secret is absent or the API fails. `functions/src/classifyTask.ts` sends every non-empty chosen transcription to AssemblyAI LLM Gateway (`gemini-2.5-flash-lite`) with the same key. High-confidence tasks become `- [ ] [💡](link) text`; failures/uncertainty stay normal `💡` lines. The temporary URL is never persisted or logged. New events only; existing events are not automatically reprocessed.
+`functions/src/retranscribe.ts` uses the official `assemblyai` Node SDK (`universal-2`). It generates a one-hour signed Storage URL for private audio, sends that URL to AssemblyAI, stores the result in `retranscription.assemblyai.text`, and falls back to the original Pebble transcript if the secret is absent or the API fails. `functions/src/classifyTask.ts` sends every non-empty chosen transcription to AssemblyAI LLM Gateway (`qwen3.5-4b-32k-fast`) with the same key. High-confidence tasks become `- [ ] [💡](link) text`; failures/uncertainty stay normal `💡` lines. The temporary URL is never persisted or logged. New events only; existing events are not automatically reprocessed.
 
 ## Cross-repo relationship
 
