@@ -6,6 +6,11 @@ export type RecordingEvent = {
   receivedAt: number | null;
   client: string;
   transcription: string | null;
+  retranscription: {
+    provider?: string;
+    text?: string;
+    status?: string;
+  } | null;
   audio: {
     path: string;
     contentType: string;

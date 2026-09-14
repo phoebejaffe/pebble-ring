@@ -12,18 +12,18 @@ Webhook receiver for Pebble Index O/Index 01 rings. Ingests `multipart/form-data
 
 Firebase project: `pebble-ring-sync-20260911` (region `us-central1`). Runtime service account: `pebble-functions-runtime@pebble-ring-sync-20260911.iam.gserviceaccount.com` (set via `serviceAccount:` on every function in `functions/src/index.ts` / `actions.ts`).
 
-| Function                      | Purpose                                                                                                                                                                                                           |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pebbleWebhook`               | HTTPS ingestion. `Authorization: Bearer $WEBHOOK_AUTH_TOKEN`, ≤25 MB audio → `recordings/{eventId}.m4a`, event doc `webhookEvents/{eventId}`, returns 202. Event ID = content hash → duplicates are acknowledged. |
-| `processWebhookEvent`         | Firestore `onDocumentCreated` trigger (`retry: true`). Skips empty transcriptions; otherwise prepends `💡` (or `[💡](recordingAudio link)` when audio exists) to the day's note via `notesSync.ts`.               |
-| `eventsApi` / `eventAudioUrl` | Dashboard APIs — Firebase Auth ID-token required; returns latest 100 events / 15-min signed audio URL.                                                                                                            |
-| `recordingAudio`              | Stable `GET ?id=<eventId>&t=<hmac>` redirect endpoint. Verifies `LINK_SIGNING_SECRET` HMAC, mints a fresh signed URL, 302s. Links in notes never expire; rotating the secret revokes them.                        |
+| Function                      | Purpose                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pebbleWebhook`               | HTTPS ingestion. `Authorization: Bearer $WEBHOOK_AUTH_TOKEN`, ≤25 MB audio → `recordings/{eventId}.m4a`, event doc `webhookEvents/{eventId}`, returns 202. Event ID = content hash → duplicates are acknowledged.                                                                                                                         |
+| `processWebhookEvent`         | Firestore `onDocumentCreated` trigger (`retry: true`, 540s/512MiB). Optionally retranscribes audio through the separate AssemblyAI project, preserves the original, stores `retranscription.assemblyai.text`, uses improved text when available, then prepends `💡` (or `[💡](recordingAudio link)` when audio exists) to the day's note. |
+| `eventsApi` / `eventAudioUrl` | Dashboard APIs — Firebase Auth ID-token required; returns latest 100 events / 15-min signed audio URL.                                                                                                                                                                                                                                    |
+| `recordingAudio`              | Stable `GET ?id=<eventId>&t=<hmac>` redirect endpoint. Verifies `LINK_SIGNING_SECRET` HMAC, mints a fresh signed URL, 302s. Links in notes never expire; rotating the secret revokes them.                                                                                                                                                |
 
 Deploy: `firebase deploy --only functions,firestore,storage --project pebble-ring-sync-20260911`. Use `--force` when redeploying `processWebhookEvent` non-interactively (retry confirmation).
 
 ## Secrets and environment
 
-Firebase Secret Manager (never commit, never log): `WEBHOOK_AUTH_TOKEN`, `NOTES_FIREBASE_PROJECT_ID` (= `notes-363bc`), `NOTES_USER_ID`, `NOTES_RECOVERY_PHRASE`, `LINK_SIGNING_SECRET`.
+Firebase Secret Manager (never commit, never log): `WEBHOOK_AUTH_TOKEN`, `NOTES_FIREBASE_PROJECT_ID` (= `notes-363bc`), `NOTES_USER_ID`, `NOTES_RECOVERY_PHRASE`, `LINK_SIGNING_SECRET`, `ASSEMBLYAI_API_KEY` (separate AssemblyAI account/project; never reuse the `coreads` key).
 
 Ignored `functions/.env` (non-secret config): `NOTES_TIME_ZONE=America/Los_Angeles`, `NOTES_ROLLOVER_HOUR=4`, optional `RECORDING_LINK_BASE_URL` override, `WEBHOOK_AUTH_HEADER`. **A value may not exist in both `.env` and Secret Manager** — deploy fails with "secret environment variable overlaps". Secrets belong only in Secret Manager.
 
@@ -41,6 +41,10 @@ Firebase Functions consumes the request stream and exposes the body via `req.raw
 - Day key comes from `recordedAt` (not receipt time) in `NOTES_TIME_ZONE`; before `NOTES_ROLLOVER_HOUR` counts as the previous day.
 - Insertion: `formatTranscriptionLine` → `💡 text` or `[💡](link) text`; `prependNoteLine` stacks consecutive `💡`/`[💡]` lines with `\n`, separates from other content with `\n\n`.
 - Org policy + encryption mean **transcription plaintext, note plaintext, recovery phrase, tokens, and auth headers must never be logged**. Processing status (`received/running/completed/failed/skipped` + reason) goes on the source event doc — safe error messages only.
+
+## AssemblyAI retranscription
+
+`functions/src/retranscribe.ts` uses the official `assemblyai` Node SDK (`universal-2`). It generates a one-hour signed Storage URL for private audio, sends that URL to AssemblyAI, stores the result in `retranscription.assemblyai.text`, and falls back to the original Pebble transcript if the secret is absent or the API fails. The temporary URL is never persisted or logged. New events only; existing events are not automatically reprocessed.
 
 ## Cross-repo relationship
 

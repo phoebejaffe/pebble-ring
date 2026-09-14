@@ -89,7 +89,7 @@ Audio is stored at `recordings/{eventId}.m4a`. Firestore and Storage rules deny 
 
 ## Transcription actions
 
-A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. Every non-empty transcription is written as a `💡`-prefixed line at the top of the corresponding daily note in `~/Sites/notes` — for example, `💡 call the dentist`. Consecutive transcription lines are stacked together; a blank line separates them from regular content.
+A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. For events with audio, it can send the private recording to AssemblyAI for a second transcription. The original Pebble transcription is preserved; when AssemblyAI returns text, that improved text is stored under `retranscription.assemblyai.text` and used for the Notes `💡` line. If AssemblyAI is not configured or fails, the original Pebble transcription is used instead. Every non-empty transcription is written as a `💡`-prefixed line at the top of the corresponding daily note in `~/Sites/notes` — for example, `💡 call the dentist`. Consecutive transcription lines are stacked together; a blank line separates them from regular content.
 
 When the event includes audio, the bulb becomes a Markdown link to the recording:
 
@@ -104,6 +104,24 @@ firebase functions:secrets:set LINK_SIGNING_SECRET
 ```
 
 Generate a suitable value with `python3 -c 'import secrets; print(secrets.token_urlsafe(32))'`. Events without audio get a plain `💡` line. To serve links through a custom domain or different region, set `RECORDING_LINK_BASE_URL` in the Functions environment.
+
+### AssemblyAI retranscription
+
+Create a separate AssemblyAI account/project for this receiver at [AssemblyAI](https://www.assemblyai.com/). In the AssemblyAI dashboard, create an API key for the project. Do not use the key from `~/Sites/coreads`; this receiver should have its own billing and revocation boundary.
+
+Store the key only in the receiver project's Secret Manager:
+
+```bash
+firebase functions:secrets:set ASSEMBLYAI_API_KEY --project pebble-ring-sync-20260911
+```
+
+Paste the AssemblyAI key when prompted. Do not put it in `.env`, source control, frontend variables, or chat. The key is used only by `processWebhookEvent`; it is never sent to the browser or logged. Deploying the function after setting the secret enables retranscription for new audio events:
+
+```bash
+firebase deploy --only functions:processWebhookEvent --force --project pebble-ring-sync-20260911
+```
+
+The function generates a one-hour private Storage URL for AssemblyAI. The URL is not stored in Firestore. The event keeps both the original `transcription` and the improved `retranscription` result. Existing events are not automatically reprocessed; send a new recording to test.
 
 The Notes app encrypts daily documents in the browser with an AES-GCM key derived from its recovery phrase. The backend therefore needs the Notes Firebase project credentials, the Notes user ID, and the recovery phrase so it can decrypt the existing daily document and re-encrypt it in the exact same format. Configure these as Firebase Secrets in the receiver project:
 

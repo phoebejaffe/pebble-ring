@@ -38,8 +38,13 @@ function RecordingCard({ event }: { event: RecordingEvent }) {
       </div>
       <p className="recording-client">{event.client}</p>
       <p className="recording-text">
-        {event.transcription || <span className="muted">No transcription was included.</span>}
+        {event.retranscription?.text ?? event.transcription ?? (
+          <span className="muted">No transcription was included.</span>
+        )}
       </p>
+      {event.retranscription?.text && event.transcription !== event.retranscription.text && (
+        <p className="muted">Retranscribed with AssemblyAI</p>
+      )}
       {event.audio && (
         <div className="audio-load">
           {audioUrl ? (
@@ -91,6 +96,7 @@ export function App() {
     return events.filter((event) =>
       [
         event.transcription,
+        event.retranscription?.text,
         event.client,
         event.processing?.category,
         ...(event.processing?.labels ?? []),

@@ -73,6 +73,7 @@ export function createEventsHandler(dependencies: { auth: Auth; firestore: Fires
           receivedAt,
           client: data.client ?? "unknown",
           transcription: data.transcription ?? null,
+          retranscription: data.retranscription ?? null,
           audio: data.audio ?? null,
           processing: data.processing ?? null,
         };
