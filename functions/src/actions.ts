@@ -1,5 +1,6 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
+import { classifyTranscription } from "./classifyTask.js";
 import { appendToCurrentNote } from "./notesSync.js";
 import { linkSigningSecret, recordingLinkUrl } from "./recordingLink.js";
 import { assemblyAiApiKey, retranscribeStoredAudio } from "./retranscribe.js";
@@ -91,8 +92,27 @@ export const processWebhookEvent = onDocumentCreated(
         });
         return;
       }
+      let isTask = false;
+      try {
+        const classification = await classifyTranscription(transcription);
+        isTask = classification?.isTask === true && classification.confidence >= 0.8;
+        await source.ref.update({
+          "processing.taskClassification": classification
+            ? {
+                provider: "assemblyai",
+                model: "gemini-2.5-flash-lite",
+                isTask,
+                confidence: classification.confidence,
+              }
+            : { provider: "assemblyai", status: "unavailable" },
+        });
+      } catch {
+        await source.ref.update({
+          "processing.taskClassification": { provider: "assemblyai", status: "failed" },
+        });
+      }
       const linkUrl = audioPath ? recordingLinkUrl(event.params.eventId) : null;
-      const result = await appendToCurrentNote(transcription, recordedAt, linkUrl);
+      const result = await appendToCurrentNote(transcription, recordedAt, linkUrl, isTask);
       if (result === "not_configured") {
         await source.ref.update({
           "processing.status": "skipped",

@@ -17,6 +17,12 @@ describe("transcription lines", () => {
     );
   });
 
+  it("formats classified tasks as Markdown checkboxes", () => {
+    expect(formatTranscriptionLine("put earrings in", "https://example.com/r?id=1", true)).toBe(
+      "- [ ] [💡](https://example.com/r?id=1) put earrings in",
+    );
+  });
+
   it("separates a transcription line from regular content", () => {
     expect(prependNoteLine("💡 new content", "old content")).toBe("💡 new content\n\nold content");
   });
@@ -31,6 +37,12 @@ describe("transcription lines", () => {
     expect(
       prependNoteLine("[💡](https://example.com/2) new", "[💡](https://example.com/1) old\n\nrest"),
     ).toBe("[💡](https://example.com/2) new\n[💡](https://example.com/1) old\n\nrest");
+  });
+
+  it("keeps task and transcription lines together", () => {
+    expect(prependNoteLine("💡 new", "- [ ] [💡](https://example.com/1) old\n\nrest")).toBe(
+      "💡 new\n- [ ] [💡](https://example.com/1) old\n\nrest",
+    );
   });
 
   it("leaves a blank line after a transcription-only document", () => {
