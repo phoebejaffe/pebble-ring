@@ -91,10 +91,10 @@ Audio is stored at `recordings/{eventId}.m4a`. Firestore and Storage rules deny 
 
 A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. For events with audio, it can send the private recording to AssemblyAI for a second transcription. The original Pebble transcription is preserved; when AssemblyAI returns text, that improved text is stored under `retranscription.assemblyai.text` and used for the Notes `💡` line. If AssemblyAI is not configured or fails, the original Pebble transcription is used instead. Every non-empty transcription is written as a `💡`-prefixed line at the top of the corresponding daily note in `~/Sites/notes` — for example, `💡 call the dentist`. Consecutive transcription lines are stacked together; a blank line separates them from regular content.
 
-When the event includes audio, the bulb becomes a Markdown link to the recording:
+When the event includes audio, a single trailing space becomes a Markdown link to the recording. This keeps the visible bulb and transcription visually quiet while leaving an accessible click target at the end:
 
 ```md
-[💡](https://us-central1-PROJECT_ID.cloudfunctions.net/recordingAudio?id=…&t=…) call the dentist
+💡 call the dentist[ ](https://us-central1-PROJECT_ID.cloudfunctions.net/recordingAudio?id=…&t=…)
 ```
 
 The `recordingAudio` endpoint verifies an HMAC token (`t`) signed with the `LINK_SIGNING_SECRET` secret, then redirects to a freshly minted 15-minute Storage URL. The note links therefore never expire — each click re-signs on demand — and rotating the secret revokes every outstanding link. Configure it once:

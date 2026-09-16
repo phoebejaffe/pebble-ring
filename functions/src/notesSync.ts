@@ -116,8 +116,9 @@ export function formatTranscriptionLine(
 ): string {
   const content = transcription.trim();
   if (!content) return "";
-  const bulb = linkUrl ? `[💡](${linkUrl})` : "💡";
-  return isTask ? `- [ ] ${bulb} ${content}` : `${bulb} ${content}`;
+  const recordingLink = linkUrl ? `[ ](${linkUrl})` : "";
+  const line = isTask ? `- [ ] 💡 ${content}` : `💡 ${content}`;
+  return `${line}${recordingLink}`;
 }
 
 export function prependNoteLine(line: string, current: string): string {
