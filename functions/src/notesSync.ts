@@ -122,9 +122,7 @@ export function formatTranscriptionLine(
 }
 
 export function prependNoteLine(line: string, current: string): string {
-  if (!current.trim()) return `${line}\n\n`;
-  const separator = /^\s*(?:[-*+]\s+\[[ xX]\]\s+)?\[?💡/u.test(current) ? "\n" : "\n\n";
-  return `${line}${separator}${current}`;
+  return `${line}\n\n${current}`;
 }
 
 function dateParts(
@@ -199,11 +197,13 @@ export async function appendToCurrentNote(
     .doc(connection.userId)
     .collection("documents")
     .doc(day);
-  const noteSnapshot = await noteRef.get();
-  const current = noteSnapshot.exists ? decryptMarkdown(noteSnapshot.data() ?? {}, key, day) : "";
   const line = formatTranscriptionLine(transcription, linkUrl, isTask);
   if (!line) return "written";
-  const markdown = prependNoteLine(line, current);
-  await noteRef.set(encryptMarkdown(markdown, key, day, Date.now()));
+  await connection.firestore.runTransaction(async (transaction) => {
+    const noteSnapshot = await transaction.get(noteRef);
+    const current = noteSnapshot.exists ? decryptMarkdown(noteSnapshot.data() ?? {}, key, day) : "";
+    const markdown = prependNoteLine(line, current);
+    transaction.set(noteRef, encryptMarkdown(markdown, key, day, Date.now()));
+  });
   return "written";
 }

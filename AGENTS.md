@@ -39,7 +39,8 @@ Firebase Functions consumes the request stream and exposes the body via `req.raw
 
 - Writes to `users/{NOTES_USER_ID}/documents/{day}` in project `notes-363bc`, matching the Notes app's exact format: `{ markdown, updatedAt }` JSON → AES-256-GCM → `payload` envelope with `associatedData: notes:daily-document:{day}`. Data key recovered from `metadata/keyBundle` via PBKDF2-SHA-256, 600k iterations, normalized recovery phrase. The PBKDF2 result is cached per key-bundle salt.
 - Day key comes from `recordedAt` (not receipt time) in `NOTES_TIME_ZONE`; before `NOTES_ROLLOVER_HOUR` counts as the previous day.
-- Insertion: `formatTranscriptionLine` → `💡 text` or `[💡](link) text`; `prependNoteLine` stacks consecutive `💡`/`[💡]` lines with `\n`, separates from other content with `\n\n`.
+- Insertion: `formatTranscriptionLine` → `💡 text[ ](link)` or `- [ ] 💡 text[ ](link)` when audio exists; `prependNoteLine` separates every new transcription from existing content with `\n\n`.
+- Daily-note updates run inside `firestore.runTransaction`: read the encrypted document, decrypt it, prepend the line, re-encrypt, and write in the callback. Keep the operation idempotent and side-effect-free because Firestore may retry the callback when concurrent recordings race.
 - Org policy + encryption mean **transcription plaintext, note plaintext, recovery phrase, tokens, and auth headers must never be logged**. Processing status (`received/running/completed/failed/skipped` + reason) goes on the source event doc — safe error messages only.
 
 ## AssemblyAI retranscription

@@ -27,9 +27,9 @@ describe("transcription lines", () => {
     expect(prependNoteLine("💡 new content", "old content")).toBe("💡 new content\n\nold content");
   });
 
-  it("keeps consecutive transcription lines together", () => {
+  it("separates consecutive transcription lines with a blank line", () => {
     expect(prependNoteLine("💡 new content", "💡 old content\n\nold content")).toBe(
-      "💡 new content\n💡 old content\n\nold content",
+      "💡 new content\n\n💡 old content\n\nold content",
     );
   });
 
@@ -39,12 +39,12 @@ describe("transcription lines", () => {
         "💡 new[ ](https://example.com/2)",
         "💡 old[ ](https://example.com/1)\n\nrest",
       ),
-    ).toBe("💡 new[ ](https://example.com/2)\n💡 old[ ](https://example.com/1)\n\nrest");
+    ).toBe("💡 new[ ](https://example.com/2)\n\n💡 old[ ](https://example.com/1)\n\nrest");
   });
 
   it("keeps task and transcription lines together", () => {
     expect(prependNoteLine("💡 new", "- [ ] 💡 old[ ](https://example.com/1)\n\nrest")).toBe(
-      "💡 new\n- [ ] 💡 old[ ](https://example.com/1)\n\nrest",
+      "💡 new\n\n- [ ] 💡 old[ ](https://example.com/1)\n\nrest",
     );
   });
 
