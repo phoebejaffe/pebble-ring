@@ -11,15 +11,15 @@ describe("transcription lines", () => {
     expect(formatTranscriptionLine("   ")).toBe("");
   });
 
-  it("links a trailing space to the recording when a link URL is provided", () => {
+  it("links a trailing double underscore to the recording", () => {
     expect(formatTranscriptionLine("call the dentist", "https://example.com/r?id=1")).toBe(
-      "💡 call the dentist[ ](https://example.com/r?id=1)",
+      "💡 call the dentist[__](https://example.com/r?id=1)",
     );
   });
 
   it("formats classified tasks as Markdown checkboxes", () => {
     expect(formatTranscriptionLine("put earrings in", "https://example.com/r?id=1", true)).toBe(
-      "- [ ] 💡 put earrings in[ ](https://example.com/r?id=1)",
+      "- [ ] 💡 put earrings in[__](https://example.com/r?id=1)",
     );
   });
 
@@ -36,15 +36,15 @@ describe("transcription lines", () => {
   it("keeps consecutive linked transcription lines together", () => {
     expect(
       prependNoteLine(
-        "💡 new[ ](https://example.com/2)",
-        "💡 old[ ](https://example.com/1)\n\nrest",
+        "💡 new[__](https://example.com/2)",
+        "💡 old[__](https://example.com/1)\n\nrest",
       ),
-    ).toBe("💡 new[ ](https://example.com/2)\n\n💡 old[ ](https://example.com/1)\n\nrest");
+    ).toBe("💡 new[__](https://example.com/2)\n\n💡 old[__](https://example.com/1)\n\nrest");
   });
 
   it("keeps task and transcription lines together", () => {
-    expect(prependNoteLine("💡 new", "- [ ] 💡 old[ ](https://example.com/1)\n\nrest")).toBe(
-      "💡 new\n\n- [ ] 💡 old[ ](https://example.com/1)\n\nrest",
+    expect(prependNoteLine("💡 new", "- [ ] 💡 old[__](https://example.com/1)\n\nrest")).toBe(
+      "💡 new\n\n- [ ] 💡 old[__](https://example.com/1)\n\nrest",
     );
   });
 
