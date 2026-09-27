@@ -2,6 +2,7 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { classifyTranscription } from "./classifyTask.js";
 import { appendToCurrentNote } from "./notesSync.js";
+import { extractNotificationRequest, sendNotesNotification, vapidPrivateKey } from "./notify.js";
 import { linkSigningSecret, recordingLinkUrl } from "./recordingLink.js";
 import { assemblyAiApiKey, retranscribeStoredAudio } from "./retranscribe.js";
 
@@ -13,6 +14,7 @@ const notesSecrets = [
   defineSecret("NOTES_RECOVERY_PHRASE"),
   linkSigningSecret,
   assemblyAiApiKey,
+  vapidPrivateKey,
 ];
 
 export const processWebhookEvent = onDocumentCreated(
@@ -92,6 +94,8 @@ export const processWebhookEvent = onDocumentCreated(
         });
         return;
       }
+      const notificationRequest = extractNotificationRequest(transcription);
+      if (notificationRequest) transcription = notificationRequest.body;
       let isTask = false;
       try {
         const classification = await classifyTranscription(transcription);
@@ -110,6 +114,21 @@ export const processWebhookEvent = onDocumentCreated(
         await source.ref.update({
           "processing.taskClassification": { provider: "assemblyai", status: "failed" },
         });
+      }
+      if (notificationRequest) {
+        try {
+          const notificationStatus = await sendNotesNotification(notificationRequest);
+          await source.ref.update({
+            "processing.notification": {
+              status: notificationStatus,
+              emoji: notificationRequest.emoji,
+            },
+          });
+        } catch {
+          await source.ref.update({
+            "processing.notification": { status: "failed" },
+          });
+        }
       }
       const linkUrl = audioPath ? recordingLinkUrl(event.params.eventId) : null;
       const result = await appendToCurrentNote(transcription, recordedAt, linkUrl, isTask);

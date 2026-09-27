@@ -23,7 +23,7 @@ Deploy: `firebase deploy --only functions,firestore,storage --project pebble-rin
 
 ## Secrets and environment
 
-Firebase Secret Manager (never commit, never log): `WEBHOOK_AUTH_TOKEN`, `NOTES_FIREBASE_PROJECT_ID` (= `notes-363bc`), `NOTES_USER_ID`, `NOTES_RECOVERY_PHRASE`, `LINK_SIGNING_SECRET`, `ASSEMBLYAI_API_KEY` (separate AssemblyAI account/project; never reuse the `coreads` key).
+Firebase Secret Manager (never commit, never log): `WEBHOOK_AUTH_TOKEN`, `NOTES_FIREBASE_PROJECT_ID` (= `notes-363bc`), `NOTES_USER_ID`, `NOTES_RECOVERY_PHRASE`, `LINK_SIGNING_SECRET`, `ASSEMBLYAI_API_KEY` (separate AssemblyAI account/project; never reuse the `coreads` key), `VAPID_PRIVATE_KEY` (Web Push; its public half is the non-secret `VAPID_PUBLIC_KEY` env value).
 
 Ignored `functions/.env` (non-secret config): `NOTES_TIME_ZONE=America/Los_Angeles`, `NOTES_ROLLOVER_HOUR=4`, optional `RECORDING_LINK_BASE_URL` override, `WEBHOOK_AUTH_HEADER`. **A value may not exist in both `.env` and Secret Manager** — deploy fails with "secret environment variable overlaps". Secrets belong only in Secret Manager.
 
@@ -46,6 +46,10 @@ Firebase Functions consumes the request stream and exposes the body via `req.raw
 ## AssemblyAI retranscription
 
 `functions/src/retranscribe.ts` uses the official `assemblyai` Node SDK (`universal-2`). It generates a one-hour signed Storage URL for private audio, sends that URL to AssemblyAI, stores the result in `retranscription.assemblyai.text`, and falls back to the original Pebble transcript if the secret is absent or the API fails. `functions/src/classifyTask.ts` sends every non-empty chosen transcription to AssemblyAI LLM Gateway (`qwen3.5-4b-32k-fast`) with the same key. High-confidence tasks become `- [ ] text[__](link)`; failures/uncertainty stay normal `text[__](link)` lines. The temporary URL is never persisted or logged. New events only; existing events are not automatically reprocessed.
+
+## Ring phone notifications
+
+`functions/src/notify.ts` checks the final transcription for a leading `notify`/`urgent` keyword (`extractNotificationRequest`). When present, the keyword is stripped before classification/note append, and a Web Push (`web-push`, VAPID, `urgency: high`) goes to every `users/{NOTES_USER_ID}/pushSubscriptions/*` doc in the Notes project — payload `{title: "Noteses", body: "<emoji> <Body>"}` (🗒️ for `notify`, 🚨 for `urgent`). Dead endpoints (404/410) are deleted. The function also keeps `metadata/pushConfig.vapidPublicKey` in sync so the PWA can subscribe without build-time config. Result lands on `processing.notification.status` (`sent`/`failed`/`no_subscriptions`/`not_configured`).
 
 ## Cross-repo relationship
 

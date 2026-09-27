@@ -123,6 +123,12 @@ firebase deploy --only functions:processWebhookEvent --force --project pebble-ri
 
 The function generates a one-hour private Storage URL for AssemblyAI. The URL is not stored in Firestore. The event keeps both the original `transcription` and the improved `retranscription` result. Every non-empty transcription is also classified through AssemblyAI LLM Gateway using `qwen3.5-4b-32k-fast`. A high-confidence task is written to Notes as `- [ ] transcription[__](recording-link)`; uncertain, non-task, unavailable, or failed classifications remain normal `transcription[__](recording-link)` lines. Existing events are not automatically reprocessed; send a new recording to test.
 
+### Ring phone notifications
+
+A recording whose transcription begins with `notify` or `urgent` pushes a `Noteses` notification to every device where the Notes app has Ring phone alerts enabled (Settings → Notifications — the browser/PWA must support Web Push, e.g. an installed iOS/Android PWA). `notify` shows `🗒️`; `urgent` shows `🚨` and sends at high urgency. The stripped text is still classified and appended to the daily note as usual.
+
+Setup: generate a VAPID pair (`npx web-push generate-vapid-keys`), store the private key as the `VAPID_PRIVATE_KEY` secret, and set `VAPID_PUBLIC_KEY` in `functions/.env`. The receiver publishes the public key to `metadata/pushConfig` in the Notes project, so the app needs no build-time configuration. Devices subscribe via the app's service worker; dead endpoints are removed automatically on 404/410.
+
 The Notes app encrypts daily documents in the browser with an AES-GCM key derived from its recovery phrase. The backend therefore needs the Notes Firebase project credentials, the Notes user ID, and the recovery phrase so it can decrypt the existing daily document and re-encrypt it in the exact same format. Configure these as Firebase Secrets in the receiver project:
 
 ```bash
