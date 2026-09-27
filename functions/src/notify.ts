@@ -30,6 +30,24 @@ export type NotificationSendResult = "sent" | "failed" | "no_subscriptions" | "n
 // subscription docs are written by the Notes PWA (pushManager.subscribe) and
 // hold only opaque endpoints/keys — no transcription content is stored or
 // logged here.
+// The PWA reads the public key at subscribe time; keep the doc in sync so a
+// key rotation propagates without redeploying the app. Runs on every processed
+// event so the setting exists before the first "notify" recording.
+export async function ensurePushConfig(): Promise<void> {
+  const connection = notesFirestore();
+  const publicKey = (process.env.VAPID_PUBLIC_KEY ?? "").trim();
+  if (!connection || !publicKey) return;
+  const configRef = connection.firestore
+    .collection("users")
+    .doc(connection.userId)
+    .collection("metadata")
+    .doc("pushConfig");
+  const configSnapshot = await configRef.get();
+  if (configSnapshot.data()?.vapidPublicKey !== publicKey) {
+    await configRef.set({ vapidPublicKey: publicKey, updatedAt: Date.now() }, { merge: true });
+  }
+}
+
 export async function sendNotesNotification(
   request: NotificationRequest,
 ): Promise<NotificationSendResult> {
@@ -42,18 +60,6 @@ export async function sendNotesNotification(
   }
   const publicKey = (process.env.VAPID_PUBLIC_KEY ?? "").trim();
   if (!connection || !privateKey || !publicKey) return "not_configured";
-
-  // The PWA reads the public key at subscribe time; keep the doc in sync so a
-  // key rotation propagates without redeploying the app.
-  const configRef = connection.firestore
-    .collection("users")
-    .doc(connection.userId)
-    .collection("metadata")
-    .doc("pushConfig");
-  const configSnapshot = await configRef.get();
-  if (configSnapshot.data()?.vapidPublicKey !== publicKey) {
-    await configRef.set({ vapidPublicKey: publicKey, updatedAt: Date.now() }, { merge: true });
-  }
 
   const subscriptions = await connection.firestore
     .collection("users")

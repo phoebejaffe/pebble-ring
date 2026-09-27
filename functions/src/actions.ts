@@ -2,7 +2,12 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { classifyTranscription } from "./classifyTask.js";
 import { appendToCurrentNote } from "./notesSync.js";
-import { extractNotificationRequest, sendNotesNotification, vapidPrivateKey } from "./notify.js";
+import {
+  ensurePushConfig,
+  extractNotificationRequest,
+  sendNotesNotification,
+  vapidPrivateKey,
+} from "./notify.js";
 import { linkSigningSecret, recordingLinkUrl } from "./recordingLink.js";
 import { assemblyAiApiKey, retranscribeStoredAudio } from "./retranscribe.js";
 
@@ -93,6 +98,11 @@ export const processWebhookEvent = onDocumentCreated(
           "processing.retranscriptionStatus": retranscriptionStatus,
         });
         return;
+      }
+      try {
+        await ensurePushConfig();
+      } catch {
+        // Non-fatal: push provisioning must not block note appends.
       }
       const notificationRequest = extractNotificationRequest(transcription);
       if (notificationRequest) transcription = notificationRequest.body;
