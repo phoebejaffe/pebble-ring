@@ -117,7 +117,7 @@ export function formatTranscriptionLine(
   const content = transcription.trim();
   if (!content) return "";
   const recordingLink = linkUrl ? `[__](${linkUrl})` : "";
-  const line = isTask ? `- [ ] 💡 ${content}` : `💡 ${content}`;
+  const line = isTask ? `- [ ] ${content}` : content;
   return `${line}${recordingLink}`;
 }
 

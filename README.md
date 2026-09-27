@@ -89,12 +89,12 @@ Audio is stored at `recordings/{eventId}.m4a`. Firestore and Storage rules deny 
 
 ## Transcription actions
 
-A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. For events with audio, it can send the private recording to AssemblyAI for a second transcription. The original Pebble transcription is preserved; when AssemblyAI returns text, that improved text is stored under `retranscription.assemblyai.text` and used for the Notes `💡` line. If AssemblyAI is not configured or fails, the original Pebble transcription is used instead. Every non-empty transcription is written as a `💡`-prefixed line at the top of the corresponding daily note in `~/Sites/notes` — for example, `💡 call the dentist`. Consecutive transcription lines are stacked together; a blank line separates them from regular content.
+A Firestore-triggered Function named `processWebhookEvent` runs automatically after each event is stored. For events with audio, it can send the private recording to AssemblyAI for a second transcription. The original Pebble transcription is preserved; when AssemblyAI returns text, that improved text is stored under `retranscription.assemblyai.text` and used for the Notes line. If AssemblyAI is not configured or fails, the original Pebble transcription is used instead. Every non-empty transcription is written as a plain line at the top of the corresponding daily note in `~/Sites/notes` — for example, `call the dentist`. Consecutive transcription lines are stacked together; a blank line separates them from regular content.
 
-When the event includes audio, a single trailing space becomes a Markdown link to the recording. This keeps the visible bulb and transcription visually quiet while leaving an accessible click target at the end:
+When the event includes audio, a linked double underscore is appended to the line. This keeps the transcription visually quiet while leaving an accessible click target at the end:
 
 ```md
-💡 call the dentist[ ](https://us-central1-PROJECT_ID.cloudfunctions.net/recordingAudio?id=…&t=…)
+call the dentist[__](https://us-central1-PROJECT_ID.cloudfunctions.net/recordingAudio?id=…&t=…)
 ```
 
 The `recordingAudio` endpoint verifies an HMAC token (`t`) signed with the `LINK_SIGNING_SECRET` secret, then redirects to a freshly minted 15-minute Storage URL. The note links therefore never expire — each click re-signs on demand — and rotating the secret revokes every outstanding link. Configure it once:
@@ -103,7 +103,7 @@ The `recordingAudio` endpoint verifies an HMAC token (`t`) signed with the `LINK
 firebase functions:secrets:set LINK_SIGNING_SECRET
 ```
 
-Generate a suitable value with `python3 -c 'import secrets; print(secrets.token_urlsafe(32))'`. Events without audio get a plain `💡` line. To serve links through a custom domain or different region, set `RECORDING_LINK_BASE_URL` in the Functions environment.
+Generate a suitable value with `python3 -c 'import secrets; print(secrets.token_urlsafe(32))'`. Events without audio get a plain text line. To serve links through a custom domain or different region, set `RECORDING_LINK_BASE_URL` in the Functions environment.
 
 ### AssemblyAI retranscription
 
@@ -121,7 +121,7 @@ Paste the AssemblyAI key when prompted. Do not put it in `.env`, source control,
 firebase deploy --only functions:processWebhookEvent --force --project pebble-ring-sync-20260911
 ```
 
-The function generates a one-hour private Storage URL for AssemblyAI. The URL is not stored in Firestore. The event keeps both the original `transcription` and the improved `retranscription` result. Every non-empty transcription is also classified through AssemblyAI LLM Gateway using `qwen3.5-4b-32k-fast`. A high-confidence task is written to Notes as `- [ ] [💡](recording-link) transcription`; uncertain, non-task, unavailable, or failed classifications remain normal linked `💡` lines. Existing events are not automatically reprocessed; send a new recording to test.
+The function generates a one-hour private Storage URL for AssemblyAI. The URL is not stored in Firestore. The event keeps both the original `transcription` and the improved `retranscription` result. Every non-empty transcription is also classified through AssemblyAI LLM Gateway using `qwen3.5-4b-32k-fast`. A high-confidence task is written to Notes as `- [ ] transcription[__](recording-link)`; uncertain, non-task, unavailable, or failed classifications remain normal `transcription[__](recording-link)` lines. Existing events are not automatically reprocessed; send a new recording to test.
 
 The Notes app encrypts daily documents in the browser with an AES-GCM key derived from its recovery phrase. The backend therefore needs the Notes Firebase project credentials, the Notes user ID, and the recovery phrase so it can decrypt the existing daily document and re-encrypt it in the exact same format. Configure these as Firebase Secrets in the receiver project:
 
