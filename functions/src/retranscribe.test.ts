@@ -28,7 +28,23 @@ describe("retranscribeStoredAudio", () => {
       audio: "https://storage.example/audio.m4a",
       speech_models: ["universal-2"],
       filter_profanity: false,
+      keyterms_prompt: ["Masumi", "Coreads", "Timeblock"],
     });
+  });
+
+  it("uses RETRANSCRIBE_KEYTERMS when configured", async () => {
+    vi.stubEnv("RETRANSCRIBE_KEYTERMS", "Masumi , , Co-reads");
+    const transcribe = vi.fn(async () => ({ status: "completed", text: "text" }));
+    try {
+      await retranscribeStoredAudio("recordings/event.m4a", {
+        getApiKey: () => "test-key",
+        getSignedUrl: async () => "https://storage.example/audio.m4a",
+        createClient: () => ({ transcripts: { transcribe } }),
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    expect(transcribe.mock.calls[0][0].keyterms_prompt).toEqual(["Masumi", "Co-reads"]);
   });
 
   it("does nothing when the API key is not configured", async () => {
