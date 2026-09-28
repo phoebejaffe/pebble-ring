@@ -109,16 +109,11 @@ function encryptMarkdown(markdown: string, key: Buffer, day: string, updatedAt: 
   };
 }
 
-export function formatTranscriptionLine(
-  transcription: string,
-  linkUrl?: string | null,
-  isTask = false,
-): string {
+export function formatTranscriptionLine(transcription: string, linkUrl?: string | null): string {
   const content = transcription.trim();
   if (!content) return "";
   const recordingLink = linkUrl ? `[__](${linkUrl})` : "";
-  const line = isTask ? `- [ ] ${content}` : content;
-  return `${line}${recordingLink}`;
+  return `${content}${recordingLink}`;
 }
 
 export function prependNoteLine(line: string, current: string): string {
@@ -173,7 +168,6 @@ export async function appendToCurrentNote(
   transcription: string,
   recordedAt: number,
   linkUrl?: string | null,
-  isTask = false,
 ): Promise<"written" | "not_configured"> {
   const connection = notesFirestore();
   if (!connection) return "not_configured";
@@ -197,7 +191,7 @@ export async function appendToCurrentNote(
     .doc(connection.userId)
     .collection("documents")
     .doc(day);
-  const line = formatTranscriptionLine(transcription, linkUrl, isTask);
+  const line = formatTranscriptionLine(transcription, linkUrl);
   if (!line) return "written";
   await connection.firestore.runTransaction(async (transaction) => {
     const noteSnapshot = await transaction.get(noteRef);

@@ -1,6 +1,5 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
-import { classifyTranscription } from "./classifyTask.js";
 import { appendToCurrentNote } from "./notesSync.js";
 import {
   ensurePushConfig,
@@ -108,25 +107,6 @@ export const processWebhookEvent = onDocumentCreated(
       if (notificationRequest) {
         transcription = `${notificationRequest.emoji} ${notificationRequest.body}`;
       }
-      let isTask = false;
-      try {
-        const classification = await classifyTranscription(transcription);
-        isTask = classification?.isTask === true && classification.confidence >= 0.8;
-        await source.ref.update({
-          "processing.taskClassification": classification
-            ? {
-                provider: "assemblyai",
-                model: "qwen3.5-4b-32k-fast",
-                isTask,
-                confidence: classification.confidence,
-              }
-            : { provider: "assemblyai", status: "unavailable" },
-        });
-      } catch {
-        await source.ref.update({
-          "processing.taskClassification": { provider: "assemblyai", status: "failed" },
-        });
-      }
       if (notificationRequest) {
         try {
           const notificationStatus = await sendNotesNotification(notificationRequest);
@@ -143,7 +123,7 @@ export const processWebhookEvent = onDocumentCreated(
         }
       }
       const linkUrl = audioPath ? recordingLinkUrl(event.params.eventId) : null;
-      const result = await appendToCurrentNote(transcription, recordedAt, linkUrl, isTask);
+      const result = await appendToCurrentNote(transcription, recordedAt, linkUrl);
       if (result === "not_configured") {
         await source.ref.update({
           "processing.status": "skipped",

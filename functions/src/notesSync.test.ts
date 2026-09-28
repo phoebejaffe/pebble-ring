@@ -17,12 +17,6 @@ describe("transcription lines", () => {
     );
   });
 
-  it("formats classified tasks as Markdown checkboxes", () => {
-    expect(formatTranscriptionLine("put earrings in", "https://example.com/r?id=1", true)).toBe(
-      "- [ ] put earrings in[__](https://example.com/r?id=1)",
-    );
-  });
-
   it("separates a transcription line from regular content", () => {
     expect(prependNoteLine("new content", "old content")).toBe("new content\n\nold content");
   });
