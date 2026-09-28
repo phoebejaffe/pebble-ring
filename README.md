@@ -125,7 +125,7 @@ The function generates a one-hour private Storage URL for AssemblyAI. The URL is
 
 ### Ring phone notifications
 
-A recording whose transcription begins with `notify` or `urgent` pushes a `Noteses` notification to every device where the Notes app has Ring phone alerts enabled (Settings → Notifications — the browser/PWA must support Web Push, e.g. an installed iOS/Android PWA). `notify` shows `🗒️`; `urgent` shows `🚨` and sends at high urgency. The stripped text is still classified and appended to the daily note as usual.
+A recording whose transcription begins with `notify` or `urgent` pushes a `Noteses` notification to every device where the Notes app has Ring phone alerts enabled (Settings → Notifications — the browser/PWA must support Web Push, e.g. an installed iOS/Android PWA). `notify` shows `🗒️`; `urgent` shows `🚨` and sends at high urgency. The keyword is stripped and the emoji prefixes the daily-note line too, so `notify …` lands as `🗒️ …` and `urgent …` as `🚨 …` (inside the checkbox for tasks).
 
 Setup: generate a VAPID pair (`npx web-push generate-vapid-keys`), store the private key as the `VAPID_PRIVATE_KEY` secret, and set `VAPID_PUBLIC_KEY` in `functions/.env`. The receiver publishes the public key to `metadata/pushConfig` in the Notes project, so the app needs no build-time configuration. Devices subscribe via the app's service worker; dead endpoints are removed automatically on 404/410.
 

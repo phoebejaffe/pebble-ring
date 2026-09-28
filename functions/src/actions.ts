@@ -105,7 +105,9 @@ export const processWebhookEvent = onDocumentCreated(
         // Non-fatal: push provisioning must not block note appends.
       }
       const notificationRequest = extractNotificationRequest(transcription);
-      if (notificationRequest) transcription = notificationRequest.body;
+      if (notificationRequest) {
+        transcription = `${notificationRequest.emoji} ${notificationRequest.body}`;
+      }
       let isTask = false;
       try {
         const classification = await classifyTranscription(transcription);

@@ -49,7 +49,7 @@ Firebase Functions consumes the request stream and exposes the body via `req.raw
 
 ## Ring phone notifications
 
-`functions/src/notify.ts` checks the final transcription for a leading `notify`/`urgent` keyword (`extractNotificationRequest`). When present, the keyword is stripped before classification/note append, and a Web Push (`web-push`, VAPID, `urgency: high`) goes to every `users/{NOTES_USER_ID}/pushSubscriptions/*` doc in the Notes project — payload `{title: "Noteses", body: "<emoji> <Body>"}` (🗒️ for `notify`, 🚨 for `urgent`). Dead endpoints (404/410) are deleted. The function also keeps `metadata/pushConfig.vapidPublicKey` in sync so the PWA can subscribe without build-time config. Result lands on `processing.notification.status` (`sent`/`failed`/`no_subscriptions`/`not_configured`).
+`functions/src/notify.ts` checks the final transcription for a leading `notify`/`urgent` keyword (`extractNotificationRequest`). When present, the keyword is stripped and the emoji prefixes the note line (`🗒️ Remember…` or `- [ ] 🚨 Remember…`) before classification/append, and a Web Push (`web-push`, VAPID, `urgency: high`) goes to every `users/{NOTES_USER_ID}/pushSubscriptions/*` doc in the Notes project — payload `{title: "Noteses", body: "<emoji> <Body>"}` (🗒️ for `notify`, 🚨 for `urgent`). Dead endpoints (404/410) are deleted. The function also keeps `metadata/pushConfig.vapidPublicKey` in sync so the PWA can subscribe without build-time config. Result lands on `processing.notification.status` (`sent`/`failed`/`no_subscriptions`/`not_configured`).
 
 ## Cross-repo relationship
 
