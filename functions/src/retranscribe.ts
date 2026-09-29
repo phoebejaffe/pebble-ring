@@ -25,7 +25,7 @@ export type AssemblyAiClient = {
 
 // Proper nouns the ring hears often; keyterms_prompt biases universal-2
 // toward these spellings. Override with comma-separated RETRANSCRIBE_KEYTERMS.
-const DEFAULT_KEYTERMS = ["Masumi", "Coreads", "Timeblock"];
+const DEFAULT_KEYTERMS = ["Masumi", "Coreads", "Timeblock", "Noteses"];
 
 export function transcriptionKeyterms(): string[] {
   const configured = (process.env.RETRANSCRIBE_KEYTERMS ?? "").trim();

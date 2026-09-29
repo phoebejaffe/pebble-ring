@@ -1,6 +1,6 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
-import { appendToCurrentNote } from "./notesSync.js";
+import { appendToCurrentNote, appendToNamedNote } from "./notesSync.js";
 import {
   ensurePushConfig,
   extractNotificationRequest,
@@ -123,7 +123,30 @@ export const processWebhookEvent = onDocumentCreated(
         }
       }
       const linkUrl = audioPath ? recordingLinkUrl(event.params.eventId) : null;
-      const result = await appendToCurrentNote(transcription, recordedAt, linkUrl);
+      let namedNoteTitle: string | null = null;
+      let result: "written" | "not_configured";
+      if (notificationRequest) {
+        result = await appendToCurrentNote(transcription, recordedAt, linkUrl);
+      } else {
+        try {
+          const namedResult = await appendToNamedNote(transcription, linkUrl);
+          if (namedResult.status === "written") {
+            namedNoteTitle = namedResult.title ?? null;
+            result = "written";
+          } else if (namedResult.status === "not_configured") {
+            result = "not_configured";
+          } else {
+            result = await appendToCurrentNote(transcription, recordedAt, linkUrl);
+          }
+        } catch {
+          // Named-note routing must not lose the memo — fall back to the
+          // daily note with the transcription untouched.
+          result = await appendToCurrentNote(transcription, recordedAt, linkUrl);
+        }
+      }
+      if (namedNoteTitle) {
+        await source.ref.update({ "processing.namedNote": namedNoteTitle });
+      }
       if (result === "not_configured") {
         await source.ref.update({
           "processing.status": "skipped",

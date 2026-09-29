@@ -121,7 +121,7 @@ Paste the AssemblyAI key when prompted. Do not put it in `.env`, source control,
 firebase deploy --only functions:processWebhookEvent --force --project pebble-ring-sync-20260911
 ```
 
-The function generates a one-hour private Storage URL for AssemblyAI. The URL is not stored in Firestore. The event keeps both the original `transcription` and the improved `retranscription` result; the chosen text is written to Notes as `transcription[__](recording-link)`. Existing events are not automatically reprocessed; send a new recording to test.
+The function generates a one-hour private Storage URL for AssemblyAI. The URL is not stored in Firestore. The event keeps both the original `transcription` and the improved `retranscription` result; the chosen text is written to Notes as `transcription[__](recording-link)`. If the transcription's leading word(s) match a named note's title (case-insensitive, singular/plural tolerant — "idea" matches an "Ideas" note), the title is stripped and the remainder is prepended to that named note instead of the daily note. Existing events are not automatically reprocessed; send a new recording to test.
 
 ### Ring phone notifications
 

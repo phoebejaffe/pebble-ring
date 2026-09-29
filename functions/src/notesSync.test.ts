@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatTranscriptionLine, notesDayKey, prependNoteLine } from "./notesSync.js";
+import {
+  formatTranscriptionLine,
+  matchNamedNoteTitle,
+  notesDayKey,
+  prependNoteLine,
+} from "./notesSync.js";
 
 describe("transcription lines", () => {
   it("writes transcriptions as plain text lines", () => {
@@ -41,6 +46,52 @@ describe("transcription lines", () => {
 
   it("leaves a blank line after a transcription-only document", () => {
     expect(prependNoteLine("new content", "")).toBe("new content\n\n");
+  });
+});
+
+describe("matchNamedNoteTitle", () => {
+  it("routes a memo starting with a note title and strips the title", () => {
+    expect(matchNamedNoteTitle("coreads fix the login bug", ["Coreads"])).toEqual({
+      title: "Coreads",
+      remainder: "Fix the login bug",
+    });
+  });
+
+  it("matches singular against plural titles case-insensitively", () => {
+    expect(matchNamedNoteTitle("idea talk to judy", ["Ideas"])).toEqual({
+      title: "Ideas",
+      remainder: "Talk to judy",
+    });
+    expect(matchNamedNoteTitle("ideas ship it", ["Idea"])).toEqual({
+      title: "Idea",
+      remainder: "Ship it",
+    });
+  });
+
+  it("prefers the longest matching title", () => {
+    expect(matchNamedNoteTitle("project ideas ship it", ["Ideas", "Project Ideas"])).toEqual({
+      title: "Project Ideas",
+      remainder: "Ship it",
+    });
+  });
+
+  it("strips punctuation after the title", () => {
+    expect(matchNamedNoteTitle("coreads: fix the login bug", ["Coreads"])).toEqual({
+      title: "Coreads",
+      remainder: "Fix the login bug",
+    });
+  });
+
+  it("does not match partial words", () => {
+    expect(matchNamedNoteTitle("ideal weekend plans", ["Idea"])).toBeNull();
+  });
+
+  it("returns null when nothing follows the title", () => {
+    expect(matchNamedNoteTitle("ideas", ["Ideas"])).toBeNull();
+  });
+
+  it("returns null without a match", () => {
+    expect(matchNamedNoteTitle("call the dentist", ["Ideas", "Coreads"])).toBeNull();
   });
 });
 

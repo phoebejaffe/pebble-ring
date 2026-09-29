@@ -120,6 +120,51 @@ export function prependNoteLine(line: string, current: string): string {
   return `${line}\n\n${current}`;
 }
 
+function wordVariants(word: string): Set<string> {
+  const variants = new Set([word]);
+  if (word.endsWith("'s") && word.length > 2) variants.add(word.slice(0, -2));
+  if (word.endsWith("s") && word.length > 1) variants.add(word.slice(0, -1));
+  if (word.endsWith("es") && word.length > 2) variants.add(word.slice(0, -2));
+  if (word.endsWith("ies") && word.length > 3) variants.add(`${word.slice(0, -3)}y`);
+  return variants;
+}
+
+function wordsMatch(left: string, right: string): boolean {
+  const leftVariants = wordVariants(left);
+  return [...wordVariants(right)].some((variant) => leftVariants.has(variant));
+}
+
+// Matches a transcription like "coreads fix the login bug" against named-note
+// titles. Word-level, case-insensitive, singular/plural tolerant ("idea"
+// matches "Ideas"). Longest title wins when several prefix-match. The title
+// is stripped from the remainder, which is capitalized like notification
+// bodies. A title-only memo (empty remainder) returns null so it lands in the
+// daily note untouched.
+export function matchNamedNoteTitle(
+  transcription: string,
+  titles: string[],
+): { title: string; remainder: string } | null {
+  const tokens = transcription.trim().split(/\s+/u).filter(Boolean);
+  const candidates = titles
+    .map((title) => ({ title, parts: title.trim().toLowerCase().split(/\s+/u).filter(Boolean) }))
+    .filter(({ parts }) => parts.length > 0 && parts.length <= tokens.length)
+    .sort((a, b) => b.parts.length - a.parts.length || a.title.localeCompare(b.title));
+  for (const { title, parts } of candidates) {
+    const matches = parts.every((part, index) =>
+      wordsMatch(part, tokens[index].replace(/^\p{P}+|\p{P}+$/gu, "").toLowerCase()),
+    );
+    if (!matches) continue;
+    const remainder = tokens
+      .slice(parts.length)
+      .join(" ")
+      .replace(/^\p{P}+/u, "")
+      .trim();
+    if (!remainder) continue;
+    return { title, remainder: remainder.charAt(0).toUpperCase() + remainder.slice(1) };
+  }
+  return null;
+}
+
 function dateParts(
   timestamp: number,
   timeZone: string,
@@ -162,6 +207,102 @@ export function notesFirestore(): {
       TARGET_APP_NAME,
     );
   return { firestore: getFirestore(app), userId, recoveryPhrase };
+}
+
+type NamedNotePayload = {
+  title?: unknown;
+  markdown?: unknown;
+  deleted?: unknown;
+  updatedAt?: unknown;
+};
+
+function parseNamedPayload(
+  value: Record<string, unknown>,
+  key: Buffer,
+  id: string,
+): Record<string, unknown> {
+  const payload = value.payload as EncryptedEnvelope | undefined;
+  if (!payload) throw new Error(`Invalid encrypted named note ${id}`);
+  const parsed = JSON.parse(decryptEnvelope(payload, key).toString("utf8")) as NamedNotePayload;
+  if (typeof parsed.markdown !== "string") throw new Error(`Invalid encrypted named note ${id}`);
+  return parsed as Record<string, unknown>;
+}
+
+function encryptNamedPayload(payload: Record<string, unknown>, key: Buffer, id: string) {
+  return {
+    version: 1 as const,
+    id,
+    updatedAt: payload.updatedAt,
+    payload: encryptEnvelope(
+      Buffer.from(JSON.stringify(payload), "utf8"),
+      key,
+      `notes:named-document:${id}`,
+    ),
+  };
+}
+
+// If the transcription's leading word(s) match a named note's title
+// (singular/plural tolerant), prepend the remainder to that note instead of
+// the daily note. Returns "no_match" when nothing matches so the caller can
+// fall back to the daily note.
+export async function appendToNamedNote(
+  transcription: string,
+  linkUrl?: string | null,
+): Promise<{ status: "written" | "no_match" | "not_configured"; title?: string }> {
+  const connection = notesFirestore();
+  if (!connection) return { status: "not_configured" };
+
+  const keyBundleSnapshot = await connection.firestore
+    .collection("users")
+    .doc(connection.userId)
+    .collection("metadata")
+    .doc("keyBundle")
+    .get();
+  if (!keyBundleSnapshot.exists) throw new Error("Notes encryption key bundle was not found");
+  const key = dataKeyForBundle(connection.recoveryPhrase, keyBundleSnapshot.data() as KeyBundle);
+
+  const namedCollection = connection.firestore
+    .collection("users")
+    .doc(connection.userId)
+    .collection("namedDocuments");
+  const snapshot = await namedCollection.get();
+  const titles: string[] = [];
+  const titleById = new Map<string, string>();
+  for (const documentSnapshot of snapshot.docs) {
+    try {
+      const parsed = parseNamedPayload(documentSnapshot.data(), key, documentSnapshot.id);
+      if (parsed.deleted === true || typeof parsed.title !== "string" || !parsed.title.trim()) {
+        continue;
+      }
+      titles.push(parsed.title);
+      titleById.set(documentSnapshot.id, parsed.title);
+    } catch {
+      // Skip undecryptable or malformed documents.
+    }
+  }
+
+  const match = matchNamedNoteTitle(transcription, titles);
+  if (!match) return { status: "no_match" };
+  const targetId = [...titleById.entries()].find(([, title]) => title === match.title)?.[0];
+  if (!targetId) return { status: "no_match" };
+
+  const line = formatTranscriptionLine(match.remainder, linkUrl);
+  if (!line) return { status: "no_match" };
+  const noteRef = namedCollection.doc(targetId);
+  await connection.firestore.runTransaction(async (transaction) => {
+    const noteSnapshot = await transaction.get(noteRef);
+    if (!noteSnapshot.exists) return;
+    const parsed = parseNamedPayload(noteSnapshot.data() ?? {}, key, targetId);
+    if (parsed.deleted === true) return;
+    const { writeId: _writeId, ...rest } = parsed;
+    const next = {
+      ...rest,
+      markdown: prependNoteLine(line, parsed.markdown as string),
+      updatedAt: Date.now(),
+    };
+    transaction.set(noteRef, encryptNamedPayload(next, key, targetId));
+  });
+  return { status: "written", title: match.title };
 }
 
 export async function appendToCurrentNote(

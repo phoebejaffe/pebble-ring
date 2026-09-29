@@ -28,7 +28,7 @@ describe("retranscribeStoredAudio", () => {
       audio: "https://storage.example/audio.m4a",
       speech_models: ["universal-2"],
       filter_profanity: false,
-      keyterms_prompt: ["Masumi", "Coreads", "Timeblock"],
+      keyterms_prompt: ["Masumi", "Coreads", "Timeblock", "Noteses"],
     });
   });
 

@@ -45,7 +45,11 @@ Firebase Functions consumes the request stream and exposes the body via `req.raw
 
 ## AssemblyAI retranscription
 
-`functions/src/retranscribe.ts` uses the official `assemblyai` Node SDK (`universal-2`) with `keyterms_prompt` biasing toward custom spellings (default Masumi, Coreads, Timeblock; override via comma-separated `RETRANSCRIBE_KEYTERMS` env). It generates a one-hour signed Storage URL for private audio, sends that URL to AssemblyAI, stores the result in `retranscription.assemblyai.text`, and falls back to the original Pebble transcript if the secret is absent or the API fails. The temporary URL is never persisted or logged. New events only; existing events are not automatically reprocessed.
+`functions/src/retranscribe.ts` uses the official `assemblyai` Node SDK (`universal-2`) with `keyterms_prompt` biasing toward custom spellings (default Masumi, Coreads, Timeblock, Noteses; override via comma-separated `RETRANSCRIBE_KEYTERMS` env). It generates a one-hour signed Storage URL for private audio, sends that URL to AssemblyAI, stores the result in `retranscription.assemblyai.text`, and falls back to the original Pebble transcript if the secret is absent or the API fails. The temporary URL is never persisted or logged. New events only; existing events are not automatically reprocessed.
+
+## Named-note routing
+
+`appendToNamedNote` in `notesSync.ts` runs before the daily-note append (only when no `notify`/`urgent` keyword matched). It lists `users/{NOTES_USER_ID}/namedDocuments` in the Notes project, decrypts each title with `notes:named-document:${id}` associated data, and matches the transcription's leading word(s) against titles — case-insensitive and singular/plural tolerant ("idea" matches "Ideas"; longest title wins). On a match the title is stripped, the remainder capitalized, and the line prepended inside a transaction (same merge-safe pattern; no `writeId`, so the Notes app sees it as an external write). Tombstoned (`deleted`) notes are skipped; a title-only memo or any failure falls back to the daily note. The matched title is recorded at `processing.namedNote`.
 
 ## Ring phone notifications
 
