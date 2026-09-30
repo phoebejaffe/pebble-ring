@@ -26,7 +26,7 @@ describe("retranscribeStoredAudio", () => {
     expect(createClient).toHaveBeenCalledWith({ apiKey: "test-key" });
     expect(transcribe).toHaveBeenCalledWith({
       audio: "https://storage.example/audio.m4a",
-      speech_models: ["universal-2"],
+      speech_models: ["universal-3-5-pro"],
       filter_profanity: false,
       keyterms_prompt: ["Masumi", "Coreads", "Timeblock", "Noteses"],
     });

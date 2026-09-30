@@ -23,7 +23,7 @@ export type AssemblyAiClient = {
   };
 };
 
-// Proper nouns the ring hears often; keyterms_prompt biases universal-2
+// Proper nouns the ring hears often; keyterms_prompt biases universal-3-5-pro
 // toward these spellings. Override with comma-separated RETRANSCRIBE_KEYTERMS.
 const DEFAULT_KEYTERMS = ["Masumi", "Coreads", "Timeblock", "Noteses"];
 
@@ -69,7 +69,7 @@ export async function retranscribeStoredAudio(
   const client = dependencies.createClient?.({ apiKey: key }) ?? new AssemblyAI({ apiKey: key });
   const result = await client.transcripts.transcribe({
     audio: audioUrl,
-    speech_models: ["universal-2"],
+    speech_models: ["universal-3-5-pro"],
     filter_profanity: false,
     keyterms_prompt: transcriptionKeyterms(),
   });
