@@ -216,28 +216,36 @@ type NamedNotePayload = {
   updatedAt?: unknown;
 };
 
+// Named notes are plaintext version-2 records in the Notes app. Legacy
+// version-1 encrypted envelopes may still exist and are decrypted here.
 function parseNamedPayload(
   value: Record<string, unknown>,
   key: Buffer,
   id: string,
 ): Record<string, unknown> {
   const payload = value.payload as EncryptedEnvelope | undefined;
-  if (!payload) throw new Error(`Invalid encrypted named note ${id}`);
+  if (!payload) {
+    if (typeof value.markdown !== "string") throw new Error(`Invalid named note ${id}`);
+    return value;
+  }
   const parsed = JSON.parse(decryptEnvelope(payload, key).toString("utf8")) as NamedNotePayload;
   if (typeof parsed.markdown !== "string") throw new Error(`Invalid encrypted named note ${id}`);
   return parsed as Record<string, unknown>;
 }
 
-function encryptNamedPayload(payload: Record<string, unknown>, key: Buffer, id: string) {
+// Writes must match the Notes app's plaintext record shape
+// ({ version: 2, id, title, markdown, lane, order, collapsed, deleted?, updatedAt }).
+function namedNoteRecord(payload: Record<string, unknown>, id: string) {
   return {
-    version: 1 as const,
+    version: 2 as const,
     id,
+    title: payload.title,
+    markdown: payload.markdown,
+    lane: payload.lane,
+    order: payload.order,
+    collapsed: payload.collapsed === true,
+    ...(payload.deleted === true ? { deleted: true } : {}),
     updatedAt: payload.updatedAt,
-    payload: encryptEnvelope(
-      Buffer.from(JSON.stringify(payload), "utf8"),
-      key,
-      `notes:named-document:${id}`,
-    ),
   };
 }
 
@@ -294,13 +302,13 @@ export async function appendToNamedNote(
     if (!noteSnapshot.exists) return;
     const parsed = parseNamedPayload(noteSnapshot.data() ?? {}, key, targetId);
     if (parsed.deleted === true) return;
-    const { writeId: _writeId, ...rest } = parsed;
+    const { writeId: _writeId, version: _version, id: _id, ...rest } = parsed;
     const next = {
       ...rest,
       markdown: prependNoteLine(line, parsed.markdown as string),
       updatedAt: Date.now(),
     };
-    transaction.set(noteRef, encryptNamedPayload(next, key, targetId));
+    transaction.set(noteRef, namedNoteRecord(next, targetId));
   });
   return { status: "written", title: match.title };
 }
